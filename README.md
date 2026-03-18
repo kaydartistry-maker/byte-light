@@ -21,6 +21,8 @@ Most AI chat apps are stateless wrappers around an API. Resonant is a **persiste
 
 ## Quick Start
 
+> **New to this?** See [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) for a step-by-step guide with screenshots and troubleshooting.
+
 **Prerequisites:** [Node.js 20+](https://nodejs.org), [Claude Code](https://claude.ai/claude-code) (logged in)
 
 ```bash
