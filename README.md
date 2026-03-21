@@ -30,6 +30,34 @@ Most AI chat apps are stateless wrappers around an API. Resonant is a **persiste
 - **Lives on multiple channels** — web UI, Discord, Telegram, voice (ElevenLabs TTS + Groq transcription)
 - **Runs on your machine** — no cloud dependency beyond your Claude Code subscription. SQLite database, local files, your data stays yours
 
+## Screenshots
+
+<details>
+<summary><strong>Desktop</strong></summary>
+
+| Chat | Tool Calls | Canvas |
+|:---:|:---:|:---:|
+| ![Chat](docs/screenshots/general%20chat%20interface.png) | ![Tools](docs/screenshots/tool%20calls.png) | ![Canvas](docs/screenshots/canvas.png) |
+
+| Reactions & Voice | Thinking | Search |
+|:---:|:---:|:---:|
+| ![Reactions](docs/screenshots/reaction%20+%20voice%20message.png) | ![Thinking](docs/screenshots/thinking.png) | ![Search](docs/screenshots/conversation%20search.png) |
+
+| Settings |
+|:---:|
+| ![Settings](docs/screenshots/settings%20page.png) |
+
+</details>
+
+<details>
+<summary><strong>Mobile (PWA)</strong></summary>
+
+| Chat | Thinking | Tool Calls |
+|:---:|:---:|:---:|
+| ![Mobile Chat](docs/screenshots/mobile%20gen%20chat.PNG) | ![Mobile Thinking](docs/screenshots/mobile%20thinking.jpg) | ![Mobile Tools](docs/screenshots/mobile%20tool%20calls.jpg) |
+
+</details>
+
 ## Quick Start
 
 > **New to this?** See [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) for a step-by-step guide with screenshots and troubleshooting.
