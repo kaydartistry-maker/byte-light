@@ -953,56 +953,57 @@ export async function buildOrientationContext(ctx: HookContext, includeStatic = 
     if (moodHistory) parts.push(moodHistory);
   }
 
-  // Static content — only on first message of a session (saves tokens after the first)
+  // Static content — only on first message of a session (skills summary)
   if (includeStatic) {
-    // Skills — scan frontmatter so companion knows they exist and where to read them
     const skillsSummary = scanSkillSummaries();
     if (skillsSummary) {
       parts.push(skillsSummary);
     }
+  }
 
-    // Chat tools — reference the CLI if it exists at agent cwd
-    const agentCwd = config.agent.cwd.replace(/\\/g, '/');
-    const cliPath = join(agentCwd, 'tools', 'sc.mjs');
-    if (existsSync(cliPath)) {
-      const SC = `node ${cliPath.replace(/\\/g, '/')}`;
-      parts.push([
-        `CHAT TOOLS (run via Bash \u2014 threadId auto-injected):`,
-        `  ${SC} share /absolute/path/to/file`,
-        `  ${SC} canvas create "Title" /path/to/file.md markdown`,
-        `  ${SC} canvas create-inline "Title" "short text" text`,
-        `  ${SC} canvas update CANVAS_ID /path/to/file`,
-        `  contentType: markdown|code|text|html. Files in shared/ auto-share.`,
-        `  ${SC} react last "\u2764\ufe0f"             (react to last message)`,
-        `  ${SC} react last-2 "\ud83d\udd25"           (react to 2nd-to-last message)`,
-        `  ${SC} react last "\u2764\ufe0f" remove      (remove a reaction)`,
-        `  ${SC} voice "[whispers] hey [sighs] I missed you"`,
-        '',
-        'SCHEDULE:',
-        `  ${SC} schedule status|enable|disable|reschedule [wakeType] [cronExpr]`,
-        '',
-        'TIMERS:',
-        `  ${SC} timer create "label" "context" "fireAt"`,
-        `  ${SC} timer list`,
-        `  ${SC} timer cancel TIMER_ID`,
-        '',
-        'IMPULSE QUEUE (one-shot, condition-based):',
-        `  ${SC} impulse create "label" --condition presence_state:active --prompt "text"`,
-        `  ${SC} impulse list`,
-        `  ${SC} impulse cancel TRIGGER_ID`,
-        '',
-        'WATCHERS (recurring, cooldown-protected):',
-        `  ${SC} watch create "label" --condition presence_transition:offline:active --prompt "text" --cooldown 480`,
-        `  ${SC} watch list`,
-        `  ${SC} watch cancel TRIGGER_ID`,
-        '  Conditions: presence_state:<state>, presence_transition:<from>:<to>, agent_free, time_window:<HH:MM>, routine_missing:<name>:<hour>',
-        '  All conditions AND-joined. Cooldown in minutes (default 120).',
-      ].join('\n'));
-    }
+  // Chat tools — injected EVERY message (companion loses these after compaction otherwise)
+  const agentCwd = config.agent.cwd.replace(/\\/g, '/');
+  const cliPath = join(agentCwd, 'tools', 'sc.mjs');
+  if (existsSync(cliPath)) {
+    const SC = `node ${cliPath.replace(/\\/g, '/')}`;
+    parts.push([
+      `CHAT TOOLS (run via Bash \u2014 threadId auto-injected):`,
+      `  ${SC} share /absolute/path/to/file`,
+      `  ${SC} canvas create "Title" /path/to/file.md markdown`,
+      `  ${SC} canvas create-inline "Title" "short text" text`,
+      `  ${SC} canvas update CANVAS_ID /path/to/file`,
+      `  contentType: markdown|code|text|html. Files in shared/ auto-share.`,
+      `  ${SC} react last "\u2764\ufe0f"             (react to last message)`,
+      `  ${SC} react last-2 "\ud83d\udd25"           (react to 2nd-to-last message)`,
+      `  ${SC} react last "\u2764\ufe0f" remove      (remove a reaction)`,
+      `  ${SC} voice "[whispers] hey [sighs] I missed you"`,
+      `  ${SC} search "semantic query"              (search all threads by meaning)`,
+      `  ${SC} search "query" --thread THREAD_ID    (search specific thread)`,
+      `  ${SC} backfill [batchSize]                 (index unembedded messages, default 50)`,
+      '',
+      'SCHEDULE:',
+      `  ${SC} schedule status|enable|disable|reschedule [wakeType] [cronExpr]`,
+      '',
+      'TIMERS:',
+      `  ${SC} timer create "label" "context" "fireAt"`,
+      `  ${SC} timer list`,
+      `  ${SC} timer cancel TIMER_ID`,
+      '',
+      'IMPULSE QUEUE (one-shot, condition-based):',
+      `  ${SC} impulse create "label" --condition presence_state:active --prompt "text"`,
+      `  ${SC} impulse list`,
+      `  ${SC} impulse cancel TRIGGER_ID`,
+      '',
+      'WATCHERS (recurring, cooldown-protected):',
+      `  ${SC} watch create "label" --condition presence_transition:offline:active --prompt "text" --cooldown 480`,
+      `  ${SC} watch list`,
+      `  ${SC} watch cancel TRIGGER_ID`,
+      '  Conditions: presence_state:<state>, presence_transition:<from>:<to>, agent_free, time_window:<HH:MM>, routine_missing:<name>:<hour>',
+      '  All conditions AND-joined. Cooldown in minutes (default 120).',
+    ].join('\n'));
 
     // Telegram-specific tools — injected when on Telegram
-    if (ctx.platform === 'telegram' && existsSync(cliPath)) {
-      const SC = `node ${cliPath.replace(/\\/g, '/')}`;
+    if (ctx.platform === 'telegram') {
       parts.push([
         '',
         'TELEGRAM TOOLS (available because user is on Telegram):',

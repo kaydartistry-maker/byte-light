@@ -39,6 +39,10 @@ import {
   createTrigger,
   listTriggers,
   cancelTrigger,
+  getAllEmbeddings,
+  getUnembeddedMessages,
+  saveEmbedding,
+  getEmbeddingCount,
 } from '../services/db.js';
 import type { TriggerCondition } from '../services/db.js';
 import {
@@ -49,6 +53,7 @@ import {
 import { loginRateLimiter } from '../middleware/security.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getRecentAuditEntries } from '../services/audit.js';
+import { embed, cosineSimilarity, bufferToVector, vectorToBuffer } from '../services/embeddings.js';
 import { saveFile, saveFileInternal, getContentTypeFromMime, getFile, deleteFile, listFiles } from '../services/files.js';
 import { registry } from '../services/ws.js';
 import { getResonantConfig } from '../config.js';
@@ -630,6 +635,84 @@ router.post('/internal/react', (req, res) => {
   } catch (error) {
     console.error('React internal error:', error);
     res.status(500).json({ error: 'React operation failed' });
+  }
+});
+
+// --- Semantic search (localhost-only, pre-auth) ---
+
+router.post('/internal/search-semantic', async (req, res) => {
+  const ip = req.socket.remoteAddress || '';
+  const isLocalhost = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+  if (!isLocalhost) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+
+  try {
+    const { query, threadId, limit = 10 } = req.body as {
+      query?: string; threadId?: string; limit?: number;
+    };
+    if (!query || typeof query !== 'string') {
+      res.status(400).json({ error: 'query is required' });
+      return;
+    }
+
+    const queryVector = await embed(query);
+    const rows = getAllEmbeddings(threadId);
+
+    const scored = rows.map(row => ({
+      messageId: row.message_id,
+      threadId: row.thread_id,
+      threadName: row.thread_name,
+      role: row.role,
+      content: row.content,
+      createdAt: row.created_at,
+      similarity: cosineSimilarity(queryVector, bufferToVector(row.vector)),
+    }));
+
+    scored.sort((a, b) => b.similarity - a.similarity);
+    const results = scored.slice(0, Math.min(limit, 50)).map(r => ({
+      ...r,
+      content: r.content.length > 300 ? r.content.slice(0, 300) + '…' : r.content,
+      similarity: Math.round(r.similarity * 1000) / 1000,
+    }));
+
+    const { embedded, total } = getEmbeddingCount();
+    res.json({ results, indexed: embedded, totalMessages: total });
+  } catch (error) {
+    console.error('Semantic search error:', error);
+    res.status(500).json({ error: 'Semantic search failed' });
+  }
+});
+
+router.post('/internal/embed-backfill', async (req, res) => {
+  const ip = req.socket.remoteAddress || '';
+  const isLocalhost = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+  if (!isLocalhost) {
+    res.status(403).json({ error: 'Localhost only' });
+    return;
+  }
+
+  try {
+    const batchSize = Math.min((req.body?.batchSize as number) || 50, 200);
+    const unembedded = getUnembeddedMessages(batchSize);
+
+    let processed = 0;
+    for (const msg of unembedded) {
+      try {
+        const vector = await embed(msg.content);
+        saveEmbedding(msg.id, vectorToBuffer(vector));
+        processed++;
+      } catch (err) {
+        console.error(`[backfill] Failed to embed ${msg.id}:`, err);
+      }
+    }
+
+    const { embedded, total } = getEmbeddingCount();
+    res.json({ processed, remaining: total - embedded, indexed: embedded, totalMessages: total });
+  } catch (error) {
+    console.error('Backfill error:', error);
+    res.status(500).json({ error: 'Backfill failed' });
   }
 });
 
