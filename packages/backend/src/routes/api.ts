@@ -1357,20 +1357,20 @@ router.get('/search-semantic', async (req, res) => {
     const queryVector = await embed(q.trim());
     const rows = getAllEmbeddings(threadId);
 
-    const scored = rows.map(row => ({
+    const scored = rows.map((row: any) => ({
       messageId: row.message_id,
       threadId: row.thread_id,
       threadName: row.thread_name,
       role: row.role,
       content: row.content,
       createdAt: row.created_at,
-      similarity: cosineSimilarity(queryVector, bufferToVector(row.vector)),
+      similarity: cosineSimilarity(queryVector, bufferToVector(row.vector)) as number,
     }));
 
-    scored.sort((a, b) => b.similarity - a.similarity);
+    scored.sort((a: { similarity: number }, b: { similarity: number }) => b.similarity - a.similarity);
     const top = scored.slice(0, limit);
 
-    const results = top.map(r => ({
+    const results = top.map((r: { messageId: string; threadId: string; threadName: string; role: string; content: string; createdAt: string }) => ({
       messageId: r.messageId,
       threadId: r.threadId,
       threadName: r.threadName,
