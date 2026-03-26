@@ -43,6 +43,7 @@ import {
   saveEmbedding,
   getEmbeddingCount,
   getMessageContext,
+  getAllEmbeddings,
 } from '../services/db.js';
 import type { TriggerCondition } from '../services/db.js';
 import {
@@ -53,7 +54,7 @@ import {
 import { loginRateLimiter } from '../middleware/security.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { getRecentAuditEntries } from '../services/audit.js';
-import { embed, vectorToBuffer } from '../services/embeddings.js';
+import { embed, vectorToBuffer, cosineSimilarity, bufferToVector } from '../services/embeddings.js';
 import { searchVectors, getCacheStats, type SearchFilter } from '../services/vector-cache.js';
 import { saveFile, saveFileInternal, getContentTypeFromMime, getFile, deleteFile, listFiles } from '../services/files.js';
 import { registry } from '../services/ws.js';
