@@ -81,7 +81,7 @@ router.get('/health', (req, res) => {
 
 // Auth endpoints
 router.get('/auth/check', sessionCheckHandler);
-router.post('/auth/login', loginRateLimiter, loginHandler);
+router.post('/auth/login', loginHandler);
 router.post('/auth/logout', logoutHandler);
 
 // Push VAPID public key (no auth — needed before subscription)
@@ -1340,6 +1340,48 @@ router.get('/search', (req, res) => {
     res.json({ results, total });
   } catch (error) {
     console.error('Error searching messages:', error);
+    res.status(500).json({ error: 'Search failed' });
+  }
+});
+
+// Semantic message search (auth-protected)
+router.get('/search-semantic', async (req, res) => {
+  try {
+    const q = req.query.q as string;
+    if (!q || q.trim().length === 0) {
+      return res.status(400).json({ error: 'Search query required' });
+    }
+    const threadId = req.query.threadId as string | undefined;
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 50);
+
+    const queryVector = await embed(q.trim());
+    const rows = getAllEmbeddings(threadId);
+
+    const scored = rows.map(row => ({
+      messageId: row.message_id,
+      threadId: row.thread_id,
+      threadName: row.thread_name,
+      role: row.role,
+      content: row.content,
+      createdAt: row.created_at,
+      similarity: cosineSimilarity(queryVector, bufferToVector(row.vector)),
+    }));
+
+    scored.sort((a, b) => b.similarity - a.similarity);
+    const top = scored.slice(0, limit);
+
+    const results = top.map(r => ({
+      messageId: r.messageId,
+      threadId: r.threadId,
+      threadName: r.threadName,
+      role: r.role,
+      highlight: r.content.length > 160 ? r.content.slice(0, 160) + '…' : r.content,
+      createdAt: r.createdAt,
+    }));
+
+    res.json({ results, total: results.length });
+  } catch (error) {
+    console.error('Semantic search error:', error);
     res.status(500).json({ error: 'Search failed' });
   }
 });

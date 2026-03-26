@@ -937,7 +937,15 @@ export async function buildOrientationContext(ctx: HookContext, includeStatic = 
     if (handoffRaw) {
       const h = JSON.parse(handoffRaw);
       const ago = formatTimeGap(Math.round((Date.now() - new Date(h.timestamp).getTime()) / 60000));
-      parts.push(`Last session: "${h.thread}" (${h.reason}, ${ago}). ${h.excerpt}${h.excerpt ? '...' : ''}`);
+      const header = `Last session: "${h.thread}" (${h.reason}, ${ago})`;
+      if (h.digest && Array.isArray(h.digest) && h.digest.length > 0) {
+        const digestLines = h.digest.map((entry: { role: string; content: string }) =>
+          `  ${entry.role}: ${entry.content}`
+        ).join('\n');
+        parts.push(`${header}:\n${digestLines}`);
+      } else {
+        parts.push(`${header}. ${h.excerpt}${h.excerpt ? '...' : ''}`);
+      }
     }
   } catch {}
 
@@ -1140,7 +1148,15 @@ function buildSessionEnd(ctx: HookContext): HookCallback {
 
     // Capture handoff note for next session
     try {
-      const recentMsgs = getMessages({ threadId: ctx.threadId, limit: 3 });
+      const recentMsgs = getMessages({ threadId: ctx.threadId, limit: 10 });
+      // Build a real digest — last 10 messages, each trimmed to 150 chars
+      const config = getResonantConfig();
+      const userName = config.identity.user_name;
+      const digest = recentMsgs.reverse().map(m => ({
+        role: m.role === 'companion' ? 'Companion' : userName,
+        content: m.content.replace(/\n/g, ' ').trim().substring(0, 150),
+      }));
+      // Fallback excerpt for older consumers
       const lastAssistant = recentMsgs.find(m => m.role === 'companion');
       const excerpt = lastAssistant
         ? lastAssistant.content.substring(0, 120).replace(/\n/g, ' ').trim()
@@ -1150,6 +1166,7 @@ function buildSessionEnd(ctx: HookContext): HookCallback {
         threadType: ctx.threadType,
         reason: hook.reason,
         excerpt,
+        digest,
         platform: ctx.platform,
         autonomous: ctx.isAutonomous,
         timestamp: new Date().toISOString(),

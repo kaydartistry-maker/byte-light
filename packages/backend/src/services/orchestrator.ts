@@ -132,10 +132,21 @@ interface TaskDefinition {
   freshSession?: boolean; // If true, creates a new session
 }
 
+function cronToLabel(cronExpr: string, name: string): string {
+  const parts = cronExpr.split(' ');
+  if (parts.length < 2) return name;
+  const min = parseInt(parts[0]);
+  const hour = parseInt(parts[1]);
+  if (isNaN(min) || isNaN(hour)) return name;
+  const d = new Date(2000, 0, 1, hour, min);
+  const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${timeStr} — ${name}`;
+}
+
 const DEFAULT_TASKS: TaskDefinition[] = [
-  { wakeType: 'morning', label: '8:00 AM — Morning', cronExpr: '0 8 * * *', category: 'checkin', conditional: true },
-  { wakeType: 'midday', label: '1:00 PM — Midday', cronExpr: '0 13 * * *', category: 'checkin', conditional: true },
-  { wakeType: 'evening', label: '9:00 PM — Evening', cronExpr: '0 21 * * *', category: 'checkin' },
+  { wakeType: 'morning', label: cronToLabel('0 8 * * *', 'Morning'), cronExpr: '0 8 * * *', category: 'wake', conditional: true },
+  { wakeType: 'midday', label: cronToLabel('0 13 * * *', 'Midday'), cronExpr: '0 13 * * *', category: 'wake', conditional: true },
+  { wakeType: 'evening', label: cronToLabel('0 21 * * *', 'Evening'), cronExpr: '0 21 * * *', category: 'wake' },
 ];
 
 // --- Managed task interface ---
@@ -202,7 +213,8 @@ export class Orchestrator {
     const taskDefs: TaskDefinition[] = DEFAULT_TASKS.map(def => {
       const overrideCron = config.orchestrator.schedules[def.wakeType];
       if (overrideCron) {
-        return { ...def, cronExpr: overrideCron };
+        const name = def.label.split('—').pop()?.trim() || def.wakeType;
+        return { ...def, cronExpr: overrideCron, label: cronToLabel(overrideCron, name) };
       }
       return def;
     });
@@ -210,12 +222,13 @@ export class Orchestrator {
     // Add custom schedule entries not in DEFAULT_TASKS
     for (const [wakeType, cronExpr] of Object.entries(config.orchestrator.schedules)) {
       if (defaultWakeTypes.has(wakeType)) continue; // already handled above
-      const label = wakeType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const name = wakeType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const label = cronToLabel(cronExpr, name);
       taskDefs.push({
         wakeType,
         label,
         cronExpr,
-        category: 'checkin',
+        category: 'wake',
         conditional: true,
       });
       // Ensure a wake prompt exists for this custom type
@@ -307,7 +320,7 @@ export class Orchestrator {
 
       try {
         const cronStatus = await managed.task.getStatus();
-        status = cronStatus === 'scheduled' ? 'scheduled' :
+        status = (cronStatus === 'scheduled' || cronStatus === 'idle') ? 'scheduled' :
                  cronStatus === 'running' ? 'running' : 'stopped';
       } catch {
         status = managed.enabled ? 'scheduled' : 'stopped';
@@ -381,6 +394,8 @@ export class Orchestrator {
 
     managed.task = newTask;
     managed.cronExpr = newCronExpr;
+    const namePart = managed.label.split('—').pop()?.trim() || wakeType;
+    managed.label = cronToLabel(newCronExpr, namePart);
     setConfig(`cron.${wakeType}.schedule`, newCronExpr);
     olog(`RESCHEDULED: ${wakeType} -> ${newCronExpr}`);
     return true;
@@ -429,10 +444,23 @@ export class Orchestrator {
 
   // --- Core wake handler ---
 
+  private reloadWakePrompts(): void {
+    const config = getResonantConfig();
+    const userName = config.identity.user_name;
+    const loadedPrompts = parseWakePromptsFile(config.orchestrator.wake_prompts_path, userName);
+    this.wakePrompts = {};
+    for (const [key, prompt] of Object.entries(loadedPrompts)) {
+      this.wakePrompts[key] = `${WAKE_PROMPT_PREFIX}\n\n${prompt}`;
+    }
+  }
+
   private async handleWake(
     wakeType: string,
     opts?: { freshSession?: boolean }
   ): Promise<void> {
+    // Hot-reload wake prompts on every wake so edits to wake.md take effect immediately
+    this.reloadWakePrompts();
+
     const prompt = this.wakePrompts[wakeType];
     if (!prompt) {
       olog(`ERROR: Unknown wake type: ${wakeType}`);

@@ -82,6 +82,7 @@ app.use(helmet({
       baseUri: ["'self'"],
       formAction: ["'self'"],
       workerSrc: ["'self'"],
+      upgradeInsecureRequests: null,
     }
   },
   crossOriginOpenerPolicy: { policy: 'same-origin' },
@@ -89,7 +90,7 @@ app.use(helmet({
 }));
 
 app.use(securityHeaders);
-app.use(rateLimiter);
+// app.use(rateLimiter);
 
 // CORS
 app.use(cors({

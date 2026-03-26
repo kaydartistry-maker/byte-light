@@ -248,14 +248,18 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
     const remoteAddr = (socket as Socket).remoteAddress || '';
     const isLocalhost = remoteAddr === '127.0.0.1' || remoteAddr === '::1' || remoteAddr === '::ffff:127.0.0.1';
 
+    console.log(`[WS Upgrade] remote=${remoteAddr} origin=${origin} isLocalhost=${isLocalhost} hasCookie=${!!request.headers.cookie}`);
+
     // Validate origin — require valid origin for non-localhost connections
     if (!isLocalhost) {
       if (!origin || !allowedOrigins.includes(origin)) {
+        console.log(`[WS Upgrade] REJECTED: origin not allowed. Got: ${origin}, Allowed: ${allowedOrigins.join(', ')}`);
         socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
         socket.destroy();
         return;
       }
     } else if (origin && !allowedOrigins.includes(origin)) {
+      console.log(`[WS Upgrade] REJECTED: localhost origin not allowed. Got: ${origin}`);
       socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
       socket.destroy();
       return;
@@ -265,6 +269,7 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
     if (appPassword) {
       const cookieHeader = request.headers.cookie;
       if (!cookieHeader) {
+        console.log(`[WS Upgrade] REJECTED: no cookie header`);
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();
         return;

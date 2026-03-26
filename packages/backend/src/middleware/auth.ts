@@ -93,7 +93,7 @@ export function loginHandler(req: Request, res: Response): void {
     expiresAt: expiresAt.toISOString(),
   });
 
-  const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.NODE_ENV === 'production';
+  const isSecure = req.headers['x-forwarded-proto'] === 'https' || req.secure;
   res.cookie(COOKIE_NAME, sessionToken, {
     httpOnly: true,
     secure: isSecure,

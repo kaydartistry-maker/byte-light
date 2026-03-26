@@ -20,6 +20,7 @@
   let results = $state<SearchHit[]>([]);
   let total = $state(0);
   let loading = $state(false);
+  let semantic = $state(true);
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let inputEl: HTMLInputElement;
 
@@ -38,7 +39,10 @@
     if (!q) return;
     loading = true;
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=30`);
+      const endpoint = semantic
+        ? `/api/search-semantic?q=${encodeURIComponent(q)}&limit=20`
+        : `/api/search?q=${encodeURIComponent(q)}&limit=30`;
+      const res = await fetch(endpoint, { credentials: 'include' });
       if (!res.ok) throw new Error('Search failed');
       const data = await res.json();
       results = data.results;
@@ -50,6 +54,11 @@
     } finally {
       loading = false;
     }
+  }
+
+  function toggleMode() {
+    semantic = !semantic;
+    if (query.trim()) doSearch();
   }
 
   function handleResultClick(hit: SearchHit) {
@@ -89,13 +98,22 @@
         bind:this={inputEl}
         class="search-input"
         type="text"
-        placeholder="Search messages..."
+        placeholder={semantic ? 'Search by meaning...' : 'Search by keyword...'}
         bind:value={query}
         oninput={handleInput}
       />
       {#if loading}
         <span class="search-spinner"></span>
       {/if}
+      <button
+        class="mode-toggle"
+        class:semantic
+        onclick={toggleMode}
+        title={semantic ? 'Semantic search (click for keyword)' : 'Keyword search (click for semantic)'}
+        aria-label="Toggle search mode"
+      >
+        {semantic ? '✦' : '#'}
+      </button>
       <button class="search-close" onclick={() => onclose?.()} aria-label="Close">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
@@ -184,6 +202,31 @@
 
   .search-input::placeholder {
     color: var(--text-muted);
+  }
+
+  .mode-toggle {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    border-radius: 0.25rem;
+    transition: color 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--border);
+  }
+
+  .mode-toggle.semantic {
+    color: var(--gold);
+    border-color: var(--gold-dim);
+  }
+
+  .mode-toggle:hover {
+    color: var(--text-primary);
   }
 
   .search-close {
