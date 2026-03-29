@@ -456,10 +456,12 @@ export class Orchestrator {
       if (!thread) {
         // Create new daily thread (only when none exists for today)
         const now = new Date();
+        const { timezone: tz } = getResonantConfig().identity;
         const dayName = now.toLocaleDateString('en-GB', {
           weekday: 'long',
           month: 'short',
           day: 'numeric',
+          timeZone: tz,
         });
 
         thread = createThread({
@@ -702,8 +704,9 @@ export class Orchestrator {
       if (!threadId) {
         let thread = getTodayThread();
         if (!thread) {
+          const { timezone: tz } = getResonantConfig().identity;
           const dayName = now.toLocaleDateString('en-GB', {
-            weekday: 'long', month: 'short', day: 'numeric',
+            weekday: 'long', month: 'short', day: 'numeric', timeZone: tz,
           });
           thread = createThread({
             id: crypto.randomUUID(),

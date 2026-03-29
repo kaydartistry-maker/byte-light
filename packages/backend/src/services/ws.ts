@@ -264,6 +264,7 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
     // Validate session if password is set
     if (appPassword) {
       const cookieHeader = request.headers.cookie;
+      console.log("WS Cookie header:", cookieHeader);
       if (!cookieHeader) {
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();

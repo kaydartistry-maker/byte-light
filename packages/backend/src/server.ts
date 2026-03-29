@@ -87,7 +87,7 @@ app.use(helmet({
 }));
 
 app.use(securityHeaders);
-app.use(rateLimiter);
+// app.use(rateLimiter);
 
 // CORS
 app.use(cors({

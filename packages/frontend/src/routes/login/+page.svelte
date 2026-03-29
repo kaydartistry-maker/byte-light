@@ -8,7 +8,7 @@
   let loading = $state(false);
 
   onMount(async () => {
-    await checkAuth();
+    
     if (isAuthenticated() || !isAuthRequired()) {
       goto('/chat');
     }

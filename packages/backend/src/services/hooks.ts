@@ -937,7 +937,11 @@ export async function buildOrientationContext(ctx: HookContext, includeStatic = 
     if (handoffRaw) {
       const h = JSON.parse(handoffRaw);
       const ago = formatTimeGap(Math.round((Date.now() - new Date(h.timestamp).getTime()) / 60000));
-      parts.push(`Last session: "${h.thread}" (${h.reason}, ${ago}). ${h.excerpt}${h.excerpt ? '...' : ''}`);
+      if (h.digest) {
+        parts.push(`Last session: "${h.thread}" (${h.reason}, ${ago}):\n${h.digest}`);
+      } else {
+        parts.push(`Last session: "${h.thread}" (${h.reason}, ${ago}). ${h.excerpt}${h.excerpt ? '...' : ''}`);
+      }
     }
   } catch {}
 
@@ -1137,16 +1141,26 @@ function buildSessionEnd(ctx: HookContext): HookCallback {
 
     // Capture handoff note for next session
     try {
-      const recentMsgs = getMessages({ threadId: ctx.threadId, limit: 3 });
-      const lastAssistant = recentMsgs.find(m => m.role === 'companion');
+      const { identity } = getResonantConfig();
+      const recentMsgs = getMessages({ threadId: ctx.threadId, limit: 10 });
+      const lastAssistant = [...recentMsgs].reverse().find(m => m.role === 'companion');
       const excerpt = lastAssistant
         ? lastAssistant.content.substring(0, 120).replace(/\n/g, ' ').trim()
         : '';
+      // Richer digest of recent exchanges for cross-thread continuity
+      const digest = recentMsgs
+        .map(m => {
+          const role = m.role === 'companion' ? 'Companion' : identity.user_name;
+          const text = m.content.substring(0, 150).replace(/\n/g, ' ').trim();
+          return `${role}: ${text}${m.content.length > 150 ? '...' : ''}`;
+        })
+        .join('\n');
       const handoff = JSON.stringify({
         thread: ctx.threadName,
         threadType: ctx.threadType,
         reason: hook.reason,
         excerpt,
+        digest,
         platform: ctx.platform,
         autonomous: ctx.isAutonomous,
         timestamp: new Date().toISOString(),
