@@ -1147,7 +1147,21 @@ function buildSessionEnd(ctx: HookContext): HookCallback {
     console.log(`[Session] End (reason: ${hook.reason}, thread: ${ctx.threadId})`);
 
     // Capture handoff note for next session
+    // Guard: autonomous sessions should NOT overwrite interactive handoffs.
+    // Failsafe wakes ("hey haven't heard from you") are low-value handoffs
+    // that would erase rich interactive conversation context.
     try {
+      if (ctx.isAutonomous) {
+        const existingRaw = getConfig('session.handoff_note');
+        if (existingRaw) {
+          const existing = JSON.parse(existingRaw);
+          if (!existing.autonomous) {
+            console.log('[Session] Skipping handoff write — keeping interactive handoff over autonomous');
+            return { continue: true };
+          }
+        }
+      }
+
       const recentMsgs = getMessages({ threadId: ctx.threadId, limit: 10 });
       // Build a real digest — last 10 messages, each trimmed to 150 chars
       const config = getResonantConfig();

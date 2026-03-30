@@ -633,43 +633,70 @@ export class Orchestrator {
   // --- Handoff ---
 
   /**
-   * Write a handoff note from the most recent thread that has messages,
-   * skipping the current thread (which is likely empty/new).
+   * Write a comprehensive handoff note capturing the full day's conversations.
+   * Pulls from ALL recent threads (not just one), prioritizing interactive messages.
    * Called by night_close wake before the autonomous query fires.
    */
   private writeHandoffFromPreviousThread(currentThreadId: string): void {
     const config = getResonantConfig();
     const userName = config.identity.user_name;
 
-    // Get recent threads, find the first one that isn't the current thread and has messages
+    // Get recent threads (skip the current empty night_close thread)
     const threads = listThreads({ limit: 10 });
-    const previousThread = threads.find(t => t.id !== currentThreadId);
+    const candidateThreads = threads.filter(t => t.id !== currentThreadId);
 
-    if (!previousThread) {
-      olog('night_close: no previous thread found for handoff');
+    if (candidateThreads.length === 0) {
+      olog('night_close: no previous threads found for handoff');
       return;
     }
 
-    const recentMsgs = getMessages({ threadId: previousThread.id, limit: 10 });
-    if (recentMsgs.length === 0) {
-      olog(`night_close: previous thread "${previousThread.name}" has no messages`);
+    // Collect messages from today's threads (up to 20 total, prioritizing user messages)
+    const todayStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    const allDigestEntries: Array<{ role: string; content: string; thread: string; timestamp: string }> = [];
+
+    for (const thread of candidateThreads) {
+      // Only include threads from today/yesterday (recent enough to matter)
+      const msgs = getMessages({ threadId: thread.id, limit: 15 });
+      if (msgs.length === 0) continue;
+
+      for (const m of msgs.reverse()) {
+        // Skip autonomous companion messages (failsafe check-ins, etc.) — low value
+        const meta = m.metadata as Record<string, unknown> | null;
+        if (m.role === 'companion' && meta?.source === 'autonomous') continue;
+
+        allDigestEntries.push({
+          role: m.role === 'companion' ? 'Companion' : userName,
+          content: m.content.replace(/\n/g, ' ').trim().substring(0, 150),
+          thread: thread.name,
+          timestamp: m.created_at || '',
+        });
+      }
+    }
+
+    if (allDigestEntries.length === 0) {
+      olog('night_close: no messages found across recent threads');
       return;
     }
 
-    // Build digest — same format as buildSessionEnd in hooks.ts
-    const digest = recentMsgs.reverse().map(m => ({
-      role: m.role === 'companion' ? 'Companion' : userName,
-      content: m.content.replace(/\n/g, ' ').trim().substring(0, 150),
+    // Sort by timestamp and take the most recent 20
+    allDigestEntries.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    const digest = allDigestEntries.slice(-20).map(e => ({
+      role: e.role,
+      content: e.content,
     }));
 
-    const lastAssistant = recentMsgs.find(m => m.role === 'companion');
-    const excerpt = lastAssistant
-      ? lastAssistant.content.substring(0, 120).replace(/\n/g, ' ').trim()
+    // Excerpt from the last companion message
+    const lastCompanion = [...allDigestEntries].reverse().find(e => e.role === 'Companion');
+    const excerpt = lastCompanion
+      ? lastCompanion.content.substring(0, 120)
       : '';
 
+    // Thread summary — which threads contributed
+    const threadNames = [...new Set(allDigestEntries.map(e => e.thread))];
+
     const handoff = JSON.stringify({
-      thread: previousThread.name,
-      threadType: previousThread.type,
+      thread: threadNames.join(', '),
+      threadType: 'daily',
       reason: 'night_close',
       excerpt,
       digest,
@@ -679,7 +706,7 @@ export class Orchestrator {
     });
 
     setConfig('session.handoff_note', handoff);
-    olog(`night_close: handoff written from "${previousThread.name}" (${digest.length} messages)`);
+    olog(`night_close: handoff written from ${threadNames.length} thread(s): ${threadNames.join(', ')} (${digest.length} messages)`);
   }
 
   // --- Schedule polling (replaces node-cron setTimeout chains) ---
