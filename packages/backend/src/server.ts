@@ -194,31 +194,40 @@ server.listen(PORT, HOST, () => {
   console.log(`Companion: ${config.identity.companion_name} | User: ${config.identity.user_name}`);
 });
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  orchestrator.stop();
-  if (discordService) await discordService.stop();
-  if (telegramService) await telegramService.stop();
-  wss.clients.forEach(ws => ws.close());
-  wss.close();
-  server.close(() => {
-    console.log('Server closed');
-    db.close();
-    process.exit(0);
-  });
-});
+// Graceful shutdown — unified handler
+let shuttingDown = false;
+async function gracefulShutdown(signal: string): Promise<void> {
+  if (shuttingDown) return; // Prevent double-shutdown
+  shuttingDown = true;
+  console.log(`${signal} received, shutting down gracefully...`);
 
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully...');
+  // 1. Abort any active Claude query first (prevents orphaned SDK subprocess)
+  agentService.stopGeneration();
+
+  // 2. Stop orchestrator (clears all intervals/crons)
   orchestrator.stop();
-  if (discordService) await discordService.stop();
-  if (telegramService) await telegramService.stop();
+
+  // 3. Stop gateway services
+  if (discordService) await discordService.stop().catch(() => {});
+  if (telegramService) await telegramService.stop().catch(() => {});
+
+  // 4. Close WebSocket connections
   wss.clients.forEach(ws => ws.close());
   wss.close();
+
+  // 5. Close HTTP server and database
   server.close(() => {
     console.log('Server closed');
     db.close();
     process.exit(0);
   });
-});
+
+  // 6. Safety timeout — force exit if cleanup hangs
+  setTimeout(() => {
+    console.error('Graceful shutdown timed out after 8s — force exiting');
+    process.exit(1);
+  }, 8000).unref();
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

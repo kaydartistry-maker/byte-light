@@ -73,6 +73,29 @@ let contextWindowSize = 0;
 let activeAbortController: AbortController | null = null;
 let activeQuery: Query | null = null;
 
+// Safety timeout: abort hung queries after 5 minutes of no stream activity
+const AGENT_SAFETY_TIMEOUT_MS = 5 * 60 * 1000;
+let safetyTimer: ReturnType<typeof setTimeout> | null = null;
+
+function resetSafetyTimer(): void {
+  if (safetyTimer) clearTimeout(safetyTimer);
+  if (!activeAbortController) return;
+  safetyTimer = setTimeout(() => {
+    if (activeAbortController) {
+      console.error('[Agent] Safety timeout — aborting hung query (no activity for 5 minutes)');
+      activeAbortController.abort();
+      registry.broadcast({ type: 'generation_stopped' });
+    }
+  }, AGENT_SAFETY_TIMEOUT_MS);
+}
+
+function clearSafetyTimer(): void {
+  if (safetyTimer) {
+    clearTimeout(safetyTimer);
+    safetyTimer = null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // QueryQueue — priority-based queue replacing boolean queryLock
 // Agent SDK V1 can only run one query at a time, so we queue excess requests
@@ -457,6 +480,7 @@ export class AgentService {
       // Abort controller for stop_generation support
       activeAbortController = new AbortController();
       options.abortController = activeAbortController;
+      resetSafetyTimer();
 
       // File checkpointing for rewind support
       options.enableFileCheckpointing = true;
@@ -495,6 +519,7 @@ export class AgentService {
         }
 
         if (!msg || typeof msg !== 'object' || !('type' in msg)) continue;
+        resetSafetyTimer(); // Any stream activity resets the hung-query watchdog
 
         const msgType = (msg as any).type;
 
@@ -636,6 +661,7 @@ export class AgentService {
       fullResponse = fullResponse || `[Agent error: ${errMsg}]`;
     } finally {
       // Clean up active query tracking
+      clearSafetyTimer();
       activeAbortController = null;
       activeQuery = null;
       // Track session transition and update for future resume
