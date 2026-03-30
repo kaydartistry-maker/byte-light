@@ -1203,11 +1203,12 @@
     }
 
     .message {
-      overflow: hidden;
+      overflow: visible;
     }
 
     .message-content {
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: visible;
     }
 
     .tool-output {
@@ -1226,6 +1227,16 @@
     .interleaved-content {
       max-width: calc(100vw - 4rem);
       overflow: hidden;
+    }
+
+    .reactions-row {
+      flex-wrap: wrap;
+    }
+
+    .reaction-quick-pick {
+      left: 0;
+      transform: none;
+      max-width: calc(100vw - 4rem);
     }
 
     .lightbox {
