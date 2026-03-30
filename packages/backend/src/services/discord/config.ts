@@ -18,7 +18,7 @@ const DEFAULTS = {
   requireMentionInGuilds: true,
   debounceMs: 1500,
   pairingExpiryMs: 3600000,
-  ownerActiveThresholdMin: 3,
+  ownerActiveThresholdMin: 0,
   deferPollIntervalMs: 30000,
   deferMaxAgeMs: 600000,
 };

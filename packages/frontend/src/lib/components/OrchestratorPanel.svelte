@@ -589,14 +589,14 @@
   }
 
   .trigger-badge.waiting {
-    background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
+    background: var(--gold-ember);
+    color: var(--gold);
     animation: pulse-glow 2s ease-in-out infinite;
   }
 
   .trigger-badge.fired {
-    background: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
+    background: var(--gold-ember);
+    color: var(--gold);
   }
 
   @keyframes pulse-glow {

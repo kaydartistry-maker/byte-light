@@ -7,6 +7,17 @@
   let { children } = $props();
 
   onMount(async () => {
+    // Restore saved theme before render — default Midnight, migrate legacy values
+    const legacyMap: Record<string, string> = { dark: 'rose', light: 'petal' };
+    const savedTheme = localStorage.getItem('resonant-theme');
+    const theme = legacyMap[savedTheme ?? ''] ?? savedTheme ?? 'rose';
+    document.documentElement.setAttribute('data-theme', theme);
+    if (theme !== savedTheme) localStorage.setItem('resonant-theme', theme);
+    const savedAccent = localStorage.getItem('resonant-accent');
+    if (savedAccent) {
+      document.documentElement.setAttribute('data-accent', savedAccent);
+    }
+
     await checkAuth();
 
     // If not authenticated and not on login page, redirect to login

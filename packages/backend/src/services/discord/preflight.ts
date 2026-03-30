@@ -23,7 +23,18 @@ export function isGuildAllowed(guildId: string | null): boolean {
 
 export function mentionsBot(message: Message): boolean {
   if (!message.client.user) return false;
-  return message.mentions.users.has(message.client.user.id);
+  // Direct @bot mention
+  if (message.mentions.users.has(message.client.user.id)) return true;
+  // Role mention — check if bot has any of the mentioned roles
+  if (message.guild && message.mentions.roles.size > 0) {
+    const botMember = message.guild.members.cache.get(message.client.user.id);
+    if (botMember) {
+      for (const [roleId] of message.mentions.roles) {
+        if (botMember.roles.cache.has(roleId)) return true;
+      }
+    }
+  }
+  return false;
 }
 
 export async function preflight(batch: MessageBatch, pairingService: PairingService): Promise<PreflightResult> {

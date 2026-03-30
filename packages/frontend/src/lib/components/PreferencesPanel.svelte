@@ -29,6 +29,62 @@
   let telegramEnabled = $state(false);
   let newPassword = $state('');
 
+  // Theme + Accent
+  const THEMES = [
+    { id: 'rose',  label: 'Midnight', bg: '#111113', accent: '#909090' },
+    { id: 'petal', label: 'Daylight', bg: '#f0f0ee', accent: '#505050' },
+  ];
+
+  let currentTheme = $state(
+    typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('resonant-theme') ?? 'rose')
+      : 'rose'
+  );
+
+  function setTheme(id: string) {
+    currentTheme = id;
+    document.documentElement.setAttribute('data-theme', id);
+    localStorage.setItem('resonant-theme', id);
+  }
+
+  const ACCENTS = [
+    { id: 'crimson',  label: 'Crimson',  color: '#c43040' },
+    { id: 'burgundy', label: 'Burgundy', color: '#d01850' },
+    { id: 'rose',     label: 'Rose',     color: '#c04068' },
+    { id: 'orange',   label: 'Orange',   color: '#d87818' },
+    { id: 'amber',    label: 'Amber',    color: '#c88818' },
+    { id: 'forest',   label: 'Forest',   color: '#1e7840' },
+    { id: 'emerald',  label: 'Emerald',  color: '#1a9868' },
+    { id: 'mint',     label: 'Mint',     color: '#1aaa90' },
+    { id: 'teal',     label: 'Teal',     color: '#18b8a8' },
+    { id: 'ocean',    label: 'Ocean',    color: '#1880c0' },
+    { id: 'sapphire', label: 'Sapphire', color: '#1848c8' },
+    { id: 'lavender', label: 'Lavender', color: '#8068d0' },
+    { id: 'amethyst', label: 'Amethyst', color: '#6040b8' },
+    { id: 'plum',     label: 'Plum',     color: '#7020a0' },
+    { id: 'magenta',  label: 'Magenta',  color: '#c81878' },
+    { id: 'blush',    label: 'Blush',    color: '#b88890' },
+    { id: 'slate',    label: 'Slate',    color: '#707070' },
+    { id: 'silver',   label: 'Silver',   color: '#a0a0a0' },
+  ];
+
+  let currentAccent = $state(
+    typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('resonant-accent') ?? '')
+      : ''
+  );
+
+  function setAccent(id: string) {
+    currentAccent = id;
+    if (id) {
+      document.documentElement.setAttribute('data-accent', id);
+      localStorage.setItem('resonant-accent', id);
+    } else {
+      document.documentElement.removeAttribute('data-accent');
+      localStorage.removeItem('resonant-accent');
+    }
+  }
+
   const MODELS = [
     { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
     { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
@@ -107,6 +163,48 @@
   {#if loading}
     <p class="loading-text">Loading preferences...</p>
   {:else if prefs}
+    <!-- Appearance -->
+    <section class="section">
+      <h3 class="section-title">Appearance</h3>
+      <p class="section-desc">Pick a base and an accent. Both apply instantly.</p>
+
+      <p class="subsection-label">Base</p>
+      <div class="theme-grid">
+        {#each THEMES as theme}
+          <button
+            class="theme-swatch"
+            class:active={currentTheme === theme.id}
+            onclick={() => setTheme(theme.id)}
+            title={theme.label}
+            aria-label={theme.label}
+            aria-pressed={currentTheme === theme.id}
+          >
+            <span class="swatch-preview" style="background: {theme.bg};">
+              <span class="swatch-dot" style="background: {currentAccent ? (ACCENTS.find(a => a.id === currentAccent)?.color ?? theme.accent) : theme.accent};"></span>
+            </span>
+            <span class="swatch-label">{theme.label}</span>
+          </button>
+        {/each}
+      </div>
+
+      <p class="subsection-label" style="margin-top: 1.25rem;">Accent</p>
+      <div class="accent-grid">
+        {#each ACCENTS as accent}
+          <button
+            class="accent-dot"
+            class:active={currentAccent === accent.id}
+            onclick={() => setAccent(accent.id)}
+            title={accent.label}
+            aria-label={accent.label}
+            aria-pressed={currentAccent === accent.id}
+          >
+            <span class="dot-preview" style="background: {accent.color};"></span>
+            <span class="dot-label">{accent.label}</span>
+          </button>
+        {/each}
+      </div>
+    </section>
+
     <!-- Identity -->
     <section class="section">
       <h3 class="section-title">Identity</h3>
@@ -291,6 +389,129 @@ GROQ_API_KEY=your_groq_key</pre>
 <style>
   .prefs-panel {
     max-width: 540px;
+  }
+
+  .theme-grid {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .theme-swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .swatch-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 2.5rem;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    transition: border-color var(--transition), box-shadow var(--transition);
+  }
+
+  .theme-swatch:hover .swatch-preview {
+    border-color: var(--border-hover);
+  }
+
+  .theme-swatch.active .swatch-preview {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px var(--gold-glow);
+  }
+
+  .swatch-dot {
+    width: 0.875rem;
+    height: 0.875rem;
+    border-radius: 50%;
+    opacity: 0.9;
+  }
+
+  .swatch-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    transition: color var(--transition-fast);
+  }
+
+  .theme-swatch.active .swatch-label {
+    color: var(--text-secondary);
+  }
+
+  .subsection-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 0 0 0.625rem;
+  }
+
+  .accent-grid {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .accent-dot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .dot-preview {
+    width: 2.125rem;
+    height: 2.125rem;
+    border-radius: 50%;
+    border: 2.5px solid transparent;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    flex-shrink: 0;
+  }
+
+  .dot-auto {
+    background: conic-gradient(
+      #c43040 0deg 45deg,
+      #d87818 45deg 90deg,
+      #1e7840 90deg 135deg,
+      #1880c0 135deg 180deg,
+      #7020a0 180deg 225deg,
+      #c81878 225deg 270deg,
+      #c88818 270deg 315deg,
+      #1aaa90 315deg 360deg
+    );
+  }
+
+  .accent-dot:hover .dot-preview {
+    border-color: var(--border-hover);
+  }
+
+  .accent-dot.active .dot-preview {
+    border-color: var(--text-primary);
+    box-shadow: 0 0 0 2px var(--gold-glow);
+  }
+
+  .dot-label {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    transition: color var(--transition-fast);
+    white-space: nowrap;
+  }
+
+  .accent-dot.active .dot-label {
+    color: var(--text-secondary);
   }
 
   .loading-text {

@@ -128,25 +128,27 @@
 
   <!-- Content -->
   <div class="settings-content">
-    {#if loading}
-      <div class="loading">Loading settings...</div>
-    {:else if activeTab === 'preferences'}
-      <PreferencesPanel />
-    {:else if activeTab === 'orchestrator'}
-      <OrchestratorPanel tasks={systemStatus?.orchestratorTasks ?? getOrchestratorTasks()} triggers={getTriggers()} />
-    {:else if activeTab === 'system'}
-      <SystemStatusPanel status={systemStatus} />
-    {:else if activeTab === 'mcp'}
-      <McpActivityPanel status={systemStatus} />
-    {:else if activeTab === 'skills'}
-      <SkillsPanel />
-    {:else if activeTab === 'notifications'}
-      <NotificationsPanel />
-    {:else if activeTab === 'discord'}
-      <DiscordPanel />
-    {:else if activeTab === 'sessions'}
-      <SessionsPanel />
-    {/if}
+    <div class="settings-inner">
+      {#if loading}
+        <div class="loading">Loading settings...</div>
+      {:else if activeTab === 'preferences'}
+        <PreferencesPanel />
+      {:else if activeTab === 'orchestrator'}
+        <OrchestratorPanel tasks={systemStatus?.orchestratorTasks ?? getOrchestratorTasks()} triggers={getTriggers()} />
+      {:else if activeTab === 'system'}
+        <SystemStatusPanel status={systemStatus} />
+      {:else if activeTab === 'mcp'}
+        <McpActivityPanel status={systemStatus} />
+      {:else if activeTab === 'skills'}
+        <SkillsPanel />
+      {:else if activeTab === 'notifications'}
+        <NotificationsPanel />
+      {:else if activeTab === 'discord'}
+        <DiscordPanel />
+      {:else if activeTab === 'sessions'}
+        <SessionsPanel />
+      {/if}
+    </div>
   </div>
 </div>
 
@@ -233,8 +235,12 @@
   .settings-content {
     flex: 1;
     overflow-y: auto;
+  }
+
+  .settings-inner {
+    max-width: 56rem;
+    margin: 0 auto;
     padding: 2rem;
-    max-width: 48rem;
   }
 
   .loading {
@@ -249,7 +255,7 @@
       padding: calc(env(safe-area-inset-top, 0px) + 0.75rem) 0.75rem 0.75rem;
     }
 
-    .settings-content {
+    .settings-inner {
       padding: 1rem;
     }
 

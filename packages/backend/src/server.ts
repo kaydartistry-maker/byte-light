@@ -57,7 +57,7 @@ const IS_DEV = process.env.NODE_ENV !== 'production';
 const corsOrigins: string[] = [...config.cors.origins, `http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`];
 if (IS_DEV) corsOrigins.push('http://localhost:5173');
 
-const connectSrc: string[] = ["'self'"];
+const connectSrc: string[] = ["'self'", "https://api.giphy.com"];
 // Derive WebSocket connect sources from CORS origins
 for (const origin of config.cors.origins) {
   const wsOrigin = origin.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
@@ -192,8 +192,10 @@ server.listen(PORT, HOST, () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully...');
+async function gracefulShutdown(signal: string) {
+  console.log(`${signal} received, shutting down gracefully...`);
+  // Abort any active agent query first — prevents orphaned SDK subprocesses
+  agentService.stopGeneration();
   orchestrator.stop();
   if (discordService) await discordService.stop();
   if (telegramService) await telegramService.stop();
@@ -204,18 +206,12 @@ process.on('SIGTERM', async () => {
     db.close();
     process.exit(0);
   });
-});
+  // Safety net: force exit if graceful close takes too long
+  setTimeout(() => {
+    console.log('Graceful shutdown timed out, forcing exit');
+    process.exit(1);
+  }, 8000).unref();
+}
 
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully...');
-  orchestrator.stop();
-  if (discordService) await discordService.stop();
-  if (telegramService) await telegramService.stop();
-  wss.clients.forEach(ws => ws.close());
-  wss.close();
-  server.close(() => {
-    console.log('Server closed');
-    db.close();
-    process.exit(0);
-  });
-});
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

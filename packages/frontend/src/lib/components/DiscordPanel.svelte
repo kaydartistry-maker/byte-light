@@ -1003,14 +1003,14 @@
     flex-shrink: 0;
   }
 
-  .status-dot.connected { background: #22c55e; }
+  .status-dot.connected { background: var(--status-active); }
   .status-dot.offline { background: var(--text-muted); }
 
   .status-text {
     font-size: 0.875rem;
   }
 
-  .status-text.connected { color: #22c55e; }
+  .status-text.connected { color: var(--status-active); }
   .status-text.offline { color: var(--text-muted); }
 
   .help-text {
@@ -1020,7 +1020,7 @@
   }
 
   .help-text.warning {
-    color: #f59e0b;
+    color: var(--gold);
   }
 
   .help-text code {
@@ -1040,7 +1040,7 @@
 
   .deferred-notice {
     font-size: 0.75rem;
-    color: #f59e0b;
+    color: var(--gold);
     margin-top: 0.5rem;
     font-style: italic;
   }
@@ -1338,7 +1338,7 @@
 
   .status-msg {
     font-size: 0.8125rem;
-    color: #22c55e;
+    color: var(--status-active);
     margin-top: 0.75rem;
   }
 
