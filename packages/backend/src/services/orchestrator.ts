@@ -11,6 +11,8 @@ import {
   createMessage,
   getTodayThread,
   getThread,
+  listThreads,
+  getMessages,
   updateThreadSession,
   updateThreadActivity,
   getConfigBool,
@@ -143,22 +145,118 @@ function cronToLabel(cronExpr: string, name: string): string {
   return `${timeStr} — ${name}`;
 }
 
+// --- Polling-based cron matcher (replaces node-cron's fragile setTimeout chains) ---
+
+function getLocalTimeComponents(date: Date, timezone: string) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(date);
+  const get = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0');
+
+  // Day of week: use short weekday name to avoid locale/timezone ambiguity
+  const dowName = new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'short' }).format(date);
+  const dowMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+  return {
+    minute: get('minute'),
+    hour: get('hour'),
+    dayOfMonth: get('day'),
+    month: get('month'),
+    dayOfWeek: dowMap[dowName] ?? 0,
+  };
+}
+
+function cronFieldMatches(field: string, value: number, min: number): boolean {
+  if (field === '*') return true;
+
+  for (const part of field.split(',')) {
+    const [range, stepStr] = part.split('/');
+    const step = stepStr ? parseInt(stepStr) : 1;
+
+    if (range === '*') {
+      if ((value - min) % step === 0) return true;
+    } else if (range.includes('-')) {
+      const [lo, hi] = range.split('-').map(Number);
+      if (value >= lo && value <= hi && (value - lo) % step === 0) return true;
+    } else {
+      if (parseInt(range) === value) return true;
+    }
+  }
+  return false;
+}
+
+function dowFieldMatches(field: string, dow: number): boolean {
+  if (field === '*') return true;
+
+  for (const part of field.split(',')) {
+    const [range, stepStr] = part.split('/');
+    const step = stepStr ? parseInt(stepStr) : 1;
+
+    if (range === '*') {
+      if (dow % step === 0) return true;
+    } else if (range.includes('-')) {
+      const [lo, hi] = range.split('-').map(n => parseInt(n) % 7);
+      if (dow >= lo && dow <= hi && (dow - lo) % step === 0) return true;
+    } else {
+      if (parseInt(range) % 7 === dow) return true; // 7 -> 0 (Sunday alias)
+    }
+  }
+  return false;
+}
+
+function cronMatchesNow(cronExpr: string, date: Date, timezone: string): boolean {
+  const parts = cronExpr.trim().split(/\s+/);
+  if (parts.length < 5) return false;
+
+  const t = getLocalTimeComponents(date, timezone);
+  return cronFieldMatches(parts[0], t.minute, 0) &&
+         cronFieldMatches(parts[1], t.hour, 0) &&
+         cronFieldMatches(parts[2], t.dayOfMonth, 1) &&
+         cronFieldMatches(parts[3], t.month, 1) &&
+         dowFieldMatches(parts[4], t.dayOfWeek);
+}
+
+function getNextCronRun(cronExpr: string, timezone: string): Date | null {
+  const now = new Date();
+  const check = new Date(now);
+  check.setSeconds(0, 0);
+  check.setTime(check.getTime() + 60000); // start from next minute
+
+  // Scan up to 7 days ahead
+  const limit = 7 * 24 * 60;
+  for (let i = 0; i < limit; i++) {
+    if (cronMatchesNow(cronExpr, check, timezone)) return new Date(check);
+    check.setTime(check.getTime() + 60000);
+  }
+  return null;
+}
+
+// --- Default schedule definitions ---
+
 const DEFAULT_TASKS: TaskDefinition[] = [
   { wakeType: 'morning', label: cronToLabel('0 8 * * *', 'Morning'), cronExpr: '0 8 * * *', category: 'wake', conditional: true },
   { wakeType: 'midday', label: cronToLabel('0 13 * * *', 'Midday'), cronExpr: '0 13 * * *', category: 'wake', conditional: true },
   { wakeType: 'evening', label: cronToLabel('0 21 * * *', 'Evening'), cronExpr: '0 21 * * *', category: 'wake' },
+  { wakeType: 'night_close', label: cronToLabel('0 1 * * *', 'Night Close'), cronExpr: '0 1 * * *', category: 'handoff', freshSession: true },
 ];
 
 // --- Managed task interface ---
 
 interface ManagedTask {
-  task: cron.ScheduledTask;
   cronExpr: string;
   handler: () => void | Promise<void>;
   wakeType: string;
   label: string;
   enabled: boolean;
   category: 'wake' | 'checkin' | 'handoff' | 'failsafe';
+  lastFiredMinute: string; // ISO minute key to prevent double-fire
 }
 
 // --- Default failsafe thresholds (minutes) ---
@@ -173,6 +271,7 @@ export class Orchestrator {
   private agent: AgentService;
   private pushService: PushService | null;
   private tasks = new Map<string, ManagedTask>();
+  private scheduleInterval: ReturnType<typeof setInterval> | null = null;
   private failsafeInterval: ReturnType<typeof setInterval> | null = null;
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private lastFailsafeAction: Date = new Date(0);
@@ -229,7 +328,7 @@ export class Orchestrator {
         label,
         cronExpr,
         category: 'wake',
-        conditional: true,
+        conditional: false,
       });
       // Ensure a wake prompt exists for this custom type
       if (!this.wakePrompts[wakeType]) {
@@ -237,7 +336,7 @@ export class Orchestrator {
       }
     }
 
-    // Register all scheduled tasks
+    // Register all scheduled tasks (polling-based — no node-cron setTimeout chains)
     for (const def of taskDefs) {
       const savedCron = getConfig(`cron.${def.wakeType}.schedule`);
       const cronExpr = savedCron || def.cronExpr;
@@ -245,7 +344,6 @@ export class Orchestrator {
       if (savedCron) olog(`  ${def.wakeType}: using saved schedule ${cronExpr}`);
 
       const handler = () => {
-
         if (def.conditional && this.shouldSkipCheckIn()) {
           olog(`${def.wakeType} — skipped (user active)`);
           return;
@@ -253,26 +351,25 @@ export class Orchestrator {
         this.handleWake(def.wakeType, { freshSession: def.freshSession });
       };
 
-      const task = cron.schedule(cronExpr, handler, {
-        timezone,
-      });
-
-      // node-cron v4 auto-starts tasks; stop if disabled in config
       if (!enabled) {
-        task.stop();
         olog(`  ${def.wakeType}: DISABLED (persisted)`);
       }
 
       this.tasks.set(def.wakeType, {
-        task,
         cronExpr,
         handler,
         wakeType: def.wakeType,
         label: def.label,
         enabled,
         category: def.category,
+        lastFiredMinute: '',
       });
     }
+
+    // --- Schedule polling (every 60 seconds — bulletproof, no setTimeout chains) ---
+    this.scheduleInterval = setInterval(() => this.checkSchedules(timezone), 60 * 1000);
+    // Also run immediately to catch any wake due right now
+    this.checkSchedules(timezone);
 
     // --- Failsafe polling (every 15 minutes) ---
     if (this.failsafeEnabled) {
@@ -295,10 +392,11 @@ export class Orchestrator {
 
   stop(): void {
     olog('Stopping...');
-    for (const [, managed] of this.tasks) {
-      managed.task.stop();
-    }
     this.tasks.clear();
+    if (this.scheduleInterval) {
+      clearInterval(this.scheduleInterval);
+      this.scheduleInterval = null;
+    }
     if (this.failsafeInterval) {
       clearInterval(this.failsafeInterval);
       this.failsafeInterval = null;
@@ -312,25 +410,17 @@ export class Orchestrator {
   // --- Public runtime control methods ---
 
   async getStatus(): Promise<OrchestratorTaskStatus[]> {
+    const config = getResonantConfig();
+    const timezone = config.identity.timezone;
     const statuses: OrchestratorTaskStatus[] = [];
 
     for (const [, managed] of this.tasks) {
-      let status: 'scheduled' | 'stopped' | 'running' = 'stopped';
+      const status: 'scheduled' | 'stopped' = managed.enabled ? 'scheduled' : 'stopped';
       let nextRun: string | null = null;
 
-      try {
-        const cronStatus = await managed.task.getStatus();
-        status = (cronStatus === 'scheduled' || cronStatus === 'idle') ? 'scheduled' :
-                 cronStatus === 'running' ? 'running' : 'stopped';
-      } catch {
-        status = managed.enabled ? 'scheduled' : 'stopped';
-      }
-
-      try {
-        const next = managed.task.getNextRun();
+      if (managed.enabled) {
+        const next = getNextCronRun(managed.cronExpr, timezone);
         if (next) nextRun = next.toISOString();
-      } catch {
-        // Not available
       }
 
       statuses.push({
@@ -351,7 +441,6 @@ export class Orchestrator {
     const managed = this.tasks.get(wakeType);
     if (!managed) return false;
 
-    managed.task.start();
     managed.enabled = true;
     setConfig(`cron.${wakeType}.enabled`, 'true');
     olog(`ENABLED: ${wakeType}`);
@@ -362,7 +451,6 @@ export class Orchestrator {
     const managed = this.tasks.get(wakeType);
     if (!managed) return false;
 
-    managed.task.stop();
     managed.enabled = false;
     setConfig(`cron.${wakeType}.enabled`, 'false');
     olog(`DISABLED: ${wakeType}`);
@@ -378,22 +466,8 @@ export class Orchestrator {
       return false;
     }
 
-    const config = getResonantConfig();
-
-    // Destroy old task and create new one
-    managed.task.stop();
-
-    const newTask = cron.schedule(newCronExpr, managed.handler, {
-      timezone: config.identity.timezone,
-    });
-
-    // Respect current enabled state
-    if (!managed.enabled) {
-      newTask.stop();
-    }
-
-    managed.task = newTask;
     managed.cronExpr = newCronExpr;
+    managed.lastFiredMinute = ''; // allow immediate re-fire if due
     const namePart = managed.label.split('—').pop()?.trim() || wakeType;
     managed.label = cronToLabel(newCronExpr, namePart);
     setConfig(`cron.${wakeType}.schedule`, newCronExpr);
@@ -467,9 +541,36 @@ export class Orchestrator {
       return;
     }
 
-    // Don't fire if agent is already processing a query
+    // If agent is busy, retry up to 5 times (30s apart) before giving up
     if (this.agent.isProcessing()) {
-      olog(`${wakeType} — skipped (agent busy)`);
+      const maxRetries = 5;
+      const retryDelay = 30_000; // 30 seconds
+      olog(`${wakeType} — agent busy, will retry (up to ${maxRetries} attempts)`);
+      let attempt = 0;
+      const retryTimer = setInterval(() => {
+        attempt++;
+        if (!this.agent.isProcessing()) {
+          clearInterval(retryTimer);
+          olog(`${wakeType} — agent free after ${attempt} retries, firing`);
+          this.fireWake(wakeType, opts);
+        } else if (attempt >= maxRetries) {
+          clearInterval(retryTimer);
+          olog(`${wakeType} — skipped after ${maxRetries} retries (agent still busy)`);
+        }
+      }, retryDelay);
+      return;
+    }
+
+    this.fireWake(wakeType, opts);
+  }
+
+  private async fireWake(
+    wakeType: string,
+    opts?: { freshSession?: boolean }
+  ): Promise<void> {
+    const prompt = this.wakePrompts[wakeType];
+    if (!prompt) {
+      olog(`ERROR: Unknown wake type: ${wakeType}`);
       return;
     }
 
@@ -506,6 +607,16 @@ export class Orchestrator {
         updateThreadSession(thread.id, null);
       }
 
+      // Night close: write handoff note from the most recent thread with messages
+      // This runs BEFORE the autonomous query so the handoff is always reliable
+      if (wakeType === 'night_close') {
+        try {
+          this.writeHandoffFromPreviousThread(thread.id);
+        } catch (err) {
+          olog(`night_close: handoff write failed — ${(err as Error).message}`);
+        }
+      }
+
       // Fire the autonomous query
       const response = await this.agent.processAutonomous(thread.id, prompt);
 
@@ -516,6 +627,80 @@ export class Orchestrator {
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       olog(`ERROR: ${wakeType} failed — ${errMsg}`);
+    }
+  }
+
+  // --- Handoff ---
+
+  /**
+   * Write a handoff note from the most recent thread that has messages,
+   * skipping the current thread (which is likely empty/new).
+   * Called by night_close wake before the autonomous query fires.
+   */
+  private writeHandoffFromPreviousThread(currentThreadId: string): void {
+    const config = getResonantConfig();
+    const userName = config.identity.user_name;
+
+    // Get recent threads, find the first one that isn't the current thread and has messages
+    const threads = listThreads({ limit: 10 });
+    const previousThread = threads.find(t => t.id !== currentThreadId);
+
+    if (!previousThread) {
+      olog('night_close: no previous thread found for handoff');
+      return;
+    }
+
+    const recentMsgs = getMessages({ threadId: previousThread.id, limit: 10 });
+    if (recentMsgs.length === 0) {
+      olog(`night_close: previous thread "${previousThread.name}" has no messages`);
+      return;
+    }
+
+    // Build digest — same format as buildSessionEnd in hooks.ts
+    const digest = recentMsgs.reverse().map(m => ({
+      role: m.role === 'companion' ? 'Companion' : userName,
+      content: m.content.replace(/\n/g, ' ').trim().substring(0, 150),
+    }));
+
+    const lastAssistant = recentMsgs.find(m => m.role === 'companion');
+    const excerpt = lastAssistant
+      ? lastAssistant.content.substring(0, 120).replace(/\n/g, ' ').trim()
+      : '';
+
+    const handoff = JSON.stringify({
+      thread: previousThread.name,
+      threadType: previousThread.type,
+      reason: 'night_close',
+      excerpt,
+      digest,
+      platform: 'web',
+      autonomous: false,
+      timestamp: new Date().toISOString(),
+    });
+
+    setConfig('session.handoff_note', handoff);
+    olog(`night_close: handoff written from "${previousThread.name}" (${digest.length} messages)`);
+  }
+
+  // --- Schedule polling (replaces node-cron setTimeout chains) ---
+
+  private checkSchedules(timezone: string): void {
+    const now = new Date();
+    const minuteKey = now.toISOString().substring(0, 16); // e.g. "2026-03-30T11:30"
+
+    for (const [, managed] of this.tasks) {
+      if (!managed.enabled) continue;
+      if (managed.lastFiredMinute === minuteKey) continue;
+
+      try {
+        if (cronMatchesNow(managed.cronExpr, now, timezone)) {
+          managed.lastFiredMinute = minuteKey;
+          olog(`CRON MATCH: ${managed.wakeType}`);
+          managed.handler();
+        }
+      } catch (err) {
+        olog(`CRON ERROR: ${managed.wakeType} — ${(err as Error).message}`);
+      }
     }
   }
 
