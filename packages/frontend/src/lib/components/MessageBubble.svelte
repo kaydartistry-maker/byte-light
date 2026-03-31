@@ -204,7 +204,7 @@
     aria-label="{message.role} message"
   >
     <div class="message-header">
-      <span class="role">{message.role === 'companion' ? 'Companion' : 'You'}</span>
+      <span class="role">{message.role === 'companion' ? 'Bytelight' : 'You'}</span>
       <span class="time">{formatTime(message.created_at)}</span>
       {#if message.edited_at && !isDeleted}
         <span class="edited">(edited)</span>

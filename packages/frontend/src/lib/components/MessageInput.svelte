@@ -159,7 +159,7 @@
     <div class="reply-indicator">
       <div class="reply-bar"></div>
       <div class="reply-info">
-        <span class="replying-to">Replying to {replyTo.role === 'companion' ? 'Companion' : 'You'}</span>
+        <span class="replying-to">Replying to {replyTo.role === 'companion' ? 'Bytelight' : 'You'}</span>
         <span class="reply-preview">{replyTo.content.substring(0, 100)}</span>
       </div>
       <button class="cancel-reply" onclick={handleCancelReply} aria-label="Cancel reply">

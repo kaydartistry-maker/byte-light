@@ -1,6 +1,7 @@
 <script lang="ts">
   import '../app.css';
   import { checkAuth, isAuthenticated, isChecking, isAuthRequired, stopAuthPolling } from '$lib/stores/auth.svelte';
+  import { initTheme } from '$lib/stores/theme.svelte';
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
@@ -16,6 +17,7 @@
   );
 
   onMount(async () => {
+    initTheme();
     await checkAuth();
 
     // If not authenticated and not on login page, redirect to login

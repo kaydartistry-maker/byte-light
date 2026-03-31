@@ -81,7 +81,7 @@
           case 'presence_transition':
             return `User goes ${c.from} → ${c.to}`;
           case 'agent_free':
-            return 'Companion is free';
+            return 'Bytelight is free';
           case 'time_window': {
             const after = c.after as string;
             const before = c.before as string | undefined;

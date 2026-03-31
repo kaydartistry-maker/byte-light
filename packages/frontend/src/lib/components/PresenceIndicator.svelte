@@ -19,7 +19,7 @@
   });
 </script>
 
-<div class="presence-indicator" title={statusInfo().text} role="status" aria-label={`Companion status: ${statusInfo().text}`}>
+<div class="presence-indicator" title={statusInfo().text} role="status" aria-label={`Bytelight status: ${statusInfo().text}`}>
   <div
     class="presence-dot"
     class:pulse={statusInfo().pulse}

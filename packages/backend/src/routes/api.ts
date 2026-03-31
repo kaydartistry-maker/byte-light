@@ -2131,4 +2131,72 @@ router.delete('/discord/rules/user/:id', (req, res) => {
   }
 });
 
+// ─── Mind Bridge proxy ───────────────────────────────────────────
+const MIND_API_URL = process.env.MIND_API_URL || 'https://resonant-mind.kaydartistry.workers.dev';
+const MIND_API_KEY = process.env.MIND_API_KEY || '';
+
+async function mindFetch(path: string): Promise<unknown> {
+  const res = await fetch(`${MIND_API_URL}${path}`, {
+    headers: { Authorization: `Bearer ${MIND_API_KEY}` },
+  });
+  if (!res.ok) throw new Error(`Mind API ${res.status}`);
+  return res.json();
+}
+
+router.get('/mind/health', async (_req, res) => {
+  try {
+    if (!MIND_API_KEY) { res.status(503).json({ error: 'Mind Bridge not configured' }); return; }
+    const data = await mindFetch('/api/health');
+    res.json(data);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/mind/entities', async (_req, res) => {
+  try {
+    if (!MIND_API_KEY) { res.status(503).json({ error: 'Mind Bridge not configured' }); return; }
+    const data = await mindFetch('/api/entities');
+    res.json(data);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/mind/entities/:id', async (req, res) => {
+  try {
+    if (!MIND_API_KEY) { res.status(503).json({ error: 'Mind Bridge not configured' }); return; }
+    const data = await mindFetch(`/api/entities/${req.params.id}`);
+    res.json(data);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/mind/journals', async (_req, res) => {
+  try {
+    if (!MIND_API_KEY) { res.status(503).json({ error: 'Mind Bridge not configured' }); return; }
+    const data = await mindFetch('/api/journals');
+    res.json(data);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/mind/identity', async (_req, res) => {
+  try {
+    if (!MIND_API_KEY) { res.status(503).json({ error: 'Mind Bridge not configured' }); return; }
+    const data = await mindFetch('/api/identity');
+    res.json(data);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/mind/threads', async (_req, res) => {
+  try {
+    if (!MIND_API_KEY) { res.status(503).json({ error: 'Mind Bridge not configured' }); return; }
+    const data = await mindFetch('/api/threads');
+    res.json(data);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/mind/recent', async (_req, res) => {
+  try {
+    if (!MIND_API_KEY) { res.status(503).json({ error: 'Mind Bridge not configured' }); return; }
+    const data = await mindFetch('/api/recent');
+    res.json(data);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
 export default router;

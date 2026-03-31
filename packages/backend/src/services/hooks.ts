@@ -1003,10 +1003,10 @@ export async function buildOrientationContext(ctx: HookContext, includeStatic = 
     }
   }
 
-  // Chat tools — injected EVERY message (companion loses these after compaction otherwise)
+  // Chat tools — first message only (stays in SDK conversation context after that)
   const agentCwd = config.agent.cwd.replace(/\\/g, '/');
   const cliPath = join(agentCwd, 'tools', 'sc.mjs');
-  if (existsSync(cliPath)) {
+  if (includeStatic && existsSync(cliPath)) {
     const SC = `node ${cliPath.replace(/\\/g, '/')}`;
     parts.push([
       `CHAT TOOLS (run via Bash \u2014 threadId auto-injected):`,
@@ -1067,7 +1067,7 @@ export async function buildOrientationContext(ctx: HookContext, includeStatic = 
 
   // Recent reactions — so companion sees user's reactions on each interaction
   try {
-    const recentMsgs = getMessages({ threadId: ctx.threadId, limit: 20 });
+    const recentMsgs = getMessages({ threadId: ctx.threadId, limit: 5 });
     const rxnLines: string[] = [];
     for (const m of recentMsgs) {
       if (m.metadata && typeof m.metadata === 'object') {

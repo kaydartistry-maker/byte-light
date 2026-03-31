@@ -32,7 +32,7 @@
   class:active={voiceMode}
   onclick={toggle}
   aria-label={voiceMode ? 'Disable voice mode' : 'Enable voice mode'}
-  title={voiceMode ? 'Voice mode ON — Companion speaks replies' : 'Voice mode OFF'}
+  title={voiceMode ? 'Voice mode ON — Bytelight speaks replies' : 'Voice mode OFF'}
 >
   {#if voiceMode}
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

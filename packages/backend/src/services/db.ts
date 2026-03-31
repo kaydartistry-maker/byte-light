@@ -186,14 +186,16 @@ export function getTodayThread(): Thread | null {
   const now = new Date();
   const localDate = now.toLocaleDateString('en-CA', { timeZone: timezone }); // YYYY-MM-DD
 
-  // Determine timezone's UTC offset
+  // Determine timezone's signed UTC offset (e.g. EDT = -4, JST = +9)
   const localHour = parseInt(now.toLocaleString('en-GB', { timeZone: timezone, hour: '2-digit', hour12: false }));
   const utcHour = now.getUTCHours();
-  const offsetHours = ((localHour - utcHour) + 24) % 24;
+  let offsetHours = localHour - utcHour;
+  if (offsetHours > 14) offsetHours -= 24;
+  if (offsetHours < -12) offsetHours += 24;
 
   // Query with offset applied to created_at so SQLite compares in local time
   // ORDER BY + LIMIT 1 ensures deterministic result if multiple daily threads exist
-  const modifier = `+${offsetHours} hours`;
+  const modifier = `${offsetHours >= 0 ? '+' : ''}${offsetHours} hours`;
   const stmt = getDb().prepare(`
     SELECT * FROM threads
     WHERE type = 'daily'

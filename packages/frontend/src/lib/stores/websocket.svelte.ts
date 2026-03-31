@@ -179,7 +179,7 @@ function handleMessage(event: MessageEvent) {
         // Local notification for companion messages (timers, system-injected)
         if (msg.message.role === 'companion') {
           const preview = msg.message.content.substring(0, 120).replace(/\n/g, ' ');
-          showLocalNotification('Companion', preview);
+          showLocalNotification('Bytelight', preview);
         }
         break;
 
@@ -218,7 +218,7 @@ function handleMessage(event: MessageEvent) {
         // Local notification for streamed companion messages
         if (msg.final?.role === 'companion') {
           const preview = msg.final.content.substring(0, 120).replace(/\n/g, ' ');
-          showLocalNotification('Companion', preview);
+          showLocalNotification('Bytelight', preview);
         }
         // Clean up streaming offsets and thinking events
         if (streamingMessageId) {

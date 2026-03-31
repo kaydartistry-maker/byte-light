@@ -37,6 +37,7 @@
     getRateLimitInfo,
   } from '$lib/stores/websocket.svelte';
   import { loadSettings } from '$lib/stores/settings.svelte';
+  import { initTheme, getMode, setMode } from '$lib/stores/theme.svelte';
   import type { Message } from '@resonant/shared';
 
   // Reactive state from stores
@@ -89,11 +90,7 @@
 
   // Theme toggle
   function toggleTheme() {
-    const html = document.documentElement;
-    const current = html.getAttribute('data-theme');
-    const next = current === 'light' ? 'dark' : 'light';
-    html.setAttribute('data-theme', next);
-    localStorage.setItem('resonant-theme', next);
+    setMode(getMode() === 'dark' ? 'light' : 'dark');
   }
 
   // Local state
@@ -276,6 +273,7 @@
 
   // Load initial data and connect
   onMount(async () => {
+    initTheme();
     await Promise.all([loadThreads(), loadSettings()]);
     connect();
     window.addEventListener('keydown', handleGlobalKeydown);
@@ -345,7 +343,7 @@
       </button>
 
       <div class="header-info">
-        <h1 class="header-title">Companion</h1>
+        <h1 class="header-title">Bytelight</h1>
         <PresenceIndicator status={presence} />
         <ModelSelector />
       </div>
@@ -492,12 +490,12 @@
                 />
               {:else}
                 <!-- Live activity panel while companion is working -->
-                <div class="activity-panel" aria-label="Companion is working">
+                <div class="activity-panel" aria-label="Bytelight is working">
                   <div class="activity-header">
                     <span class="typing-dot"></span>
                     <span class="typing-dot"></span>
                     <span class="typing-dot"></span>
-                    <span class="activity-label">Companion is thinking...</span>
+                    <span class="activity-label">Bytelight is thinking...</span>
                   </div>
                   {#if liveTools.length > 0}
                     <div class="activity-tools">

@@ -127,7 +127,7 @@
         {#each results as hit (hit.messageId)}
           <button class="search-result" onclick={() => handleResultClick(hit)}>
             <div class="result-header">
-              <span class="result-role" class:companion={hit.role === 'companion'}>{hit.role === 'companion' ? 'Companion' : 'You'}</span>
+              <span class="result-role" class:companion={hit.role === 'companion'}>{hit.role === 'companion' ? 'Bytelight' : 'You'}</span>
               <span class="result-thread">{hit.threadName}</span>
               <span class="result-time">{formatTime(hit.createdAt)}</span>
             </div>

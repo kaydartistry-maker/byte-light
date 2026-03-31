@@ -8,6 +8,8 @@
   import DiscordPanel from '$lib/components/DiscordPanel.svelte';
   import SessionsPanel from '$lib/components/SessionsPanel.svelte';
   import PreferencesPanel from '$lib/components/PreferencesPanel.svelte';
+  import AppearancePanel from '$lib/components/AppearancePanel.svelte';
+  import MindPanel from '$lib/components/MindPanel.svelte';
   import {
     loadSettings,
     getSystemStatus,
@@ -15,9 +17,9 @@
     getTriggers,
     isLoading,
   } from '$lib/stores/settings.svelte';
-  import { send, getConnectionState } from '$lib/stores/websocket.svelte';
+  import { connect, disconnect, send, getConnectionState } from '$lib/stores/websocket.svelte';
 
-  let activeTab = $state<'preferences' | 'orchestrator' | 'system' | 'mcp' | 'skills' | 'notifications' | 'discord' | 'sessions'>('preferences');
+  let activeTab = $state<'appearance' | 'mind' | 'preferences' | 'orchestrator' | 'system' | 'mcp' | 'skills' | 'notifications' | 'discord' | 'sessions'>('appearance');
   let systemStatus = $derived(getSystemStatus());
   let loading = $derived(isLoading());
   let connectionState = $derived(getConnectionState());
@@ -46,11 +48,13 @@
 
   onMount(async () => {
     await loadSettings();
+    connect();
     startStatusPolling();
   });
 
   onDestroy(() => {
     stopStatusPolling();
+    disconnect();
   });
 </script>
 
@@ -68,6 +72,20 @@
 
   <!-- Tabs -->
   <nav class="tabs">
+    <button
+      class="tab"
+      class:active={activeTab === 'appearance'}
+      onclick={() => activeTab = 'appearance'}
+    >
+      Appearance
+    </button>
+    <button
+      class="tab"
+      class:active={activeTab === 'mind'}
+      onclick={() => activeTab = 'mind'}
+    >
+      Mind
+    </button>
     <button
       class="tab"
       class:active={activeTab === 'preferences'}
@@ -130,6 +148,10 @@
   <div class="settings-content">
     {#if loading}
       <div class="loading">Loading settings...</div>
+    {:else if activeTab === 'appearance'}
+      <AppearancePanel />
+    {:else if activeTab === 'mind'}
+      <MindPanel />
     {:else if activeTab === 'preferences'}
       <PreferencesPanel />
     {:else if activeTab === 'orchestrator'}

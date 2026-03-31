@@ -678,9 +678,9 @@ export class Orchestrator {
       return;
     }
 
-    // Sort by timestamp and take the most recent 20
+    // Sort by timestamp and take the most recent 10
     allDigestEntries.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-    const digest = allDigestEntries.slice(-20).map(e => ({
+    const digest = allDigestEntries.slice(-10).map(e => ({
       role: e.role,
       content: e.content,
     }));
