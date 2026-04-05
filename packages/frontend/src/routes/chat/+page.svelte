@@ -107,7 +107,11 @@
   let readObserver: IntersectionObserver | null = null;
   let loadingOlder = $state(false);
   let hasMoreMessages = $state(true);
-  let companionName = $state('Fire & Smoke'); // default until prefs load
+  let companionName = $state(
+    typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('resonant-companion-name') ?? 'Fire & Smoke')
+      : 'Fire & Smoke'
+  ); // cached or default until prefs load
 
   // Total unread count
   const totalUnread = $derived(
@@ -282,7 +286,12 @@
     await Promise.all([loadThreads(), loadSettings()]);
     fetch('/api/preferences', { credentials: 'include' })
       .then(r => r.json())
-      .then(p => { if (p?.identity?.companion_name) companionName = p.identity.companion_name; })
+      .then(p => {
+        if (p?.identity?.companion_name) {
+          companionName = p.identity.companion_name;
+          localStorage.setItem('resonant-companion-name', p.identity.companion_name);
+        }
+      })
       .catch(() => {});
     connect();
     window.addEventListener('keydown', handleGlobalKeydown);

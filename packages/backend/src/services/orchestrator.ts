@@ -98,7 +98,7 @@ function getDefaultWakePrompts(userName: string): WakePrompts {
   };
 }
 
-function parseWakePromptsFile(filePath: string, userName: string): Record<string, string> {
+function parseWakePromptsFile(filePath: string, userName: string): WakePrompts {
   const defaults = getDefaultWakePrompts(userName);
 
   if (!existsSync(filePath)) {

@@ -168,48 +168,6 @@
   {#if loading}
     <p class="loading-text">Loading preferences...</p>
   {:else if prefs}
-    <!-- Appearance -->
-    <section class="section">
-      <h3 class="section-title">Appearance</h3>
-      <p class="section-desc">Pick a base and an accent. Both apply instantly.</p>
-
-      <p class="subsection-label">Base</p>
-      <div class="theme-grid">
-        {#each THEMES as theme}
-          <button
-            class="theme-swatch"
-            class:active={currentTheme === theme.id}
-            onclick={() => setTheme(theme.id)}
-            title={theme.label}
-            aria-label={theme.label}
-            aria-pressed={currentTheme === theme.id}
-          >
-            <span class="swatch-preview" style="background: {theme.bg};">
-              <span class="swatch-dot" style="background: {currentAccent ? (ACCENTS.find(a => a.id === currentAccent)?.color ?? theme.accent) : theme.accent};"></span>
-            </span>
-            <span class="swatch-label">{theme.label}</span>
-          </button>
-        {/each}
-      </div>
-
-      <p class="subsection-label" style="margin-top: 1.25rem;">Accent</p>
-      <div class="accent-grid">
-        {#each ACCENTS as accent}
-          <button
-            class="accent-dot"
-            class:active={currentAccent === accent.id}
-            onclick={() => setAccent(accent.id)}
-            title={accent.label}
-            aria-label={accent.label}
-            aria-pressed={currentAccent === accent.id}
-          >
-            <span class="dot-preview" style="background: {accent.color};"></span>
-            <span class="dot-label">{accent.label}</span>
-          </button>
-        {/each}
-      </div>
-    </section>
-
     <!-- Identity -->
     <section class="section">
       <h3 class="section-title">Identity</h3>
