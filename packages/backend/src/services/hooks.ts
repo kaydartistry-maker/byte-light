@@ -937,14 +937,10 @@ export async function buildOrientationContext(ctx: HookContext, includeStatic = 
     if (handoffRaw) {
       const h = JSON.parse(handoffRaw);
       const ago = formatTimeGap(Math.round((Date.now() - new Date(h.timestamp).getTime()) / 60000));
-      const header = `Last session: "${h.thread}" (${h.reason}, ${ago})`;
-      if (h.digest && Array.isArray(h.digest) && h.digest.length > 0) {
-        const digestLines = h.digest.map((entry: { role: string; content: string }) =>
-          `  ${entry.role}: ${entry.content}`
-        ).join('\n');
-        parts.push(`${header}:\n${digestLines}`);
+if (h.digest) {
+        parts.push(`Last session: "${h.thread}" (${h.reason}, ${ago}):\n${h.digest}`);
       } else {
-        parts.push(`${header}. ${h.excerpt}${h.excerpt ? '...' : ''}`);
+        parts.push(`Last session: "${h.thread}" (${h.reason}, ${ago}). ${h.excerpt}${h.excerpt ? '...' : ''}`);
       }
     }
   } catch {}
@@ -1151,6 +1147,7 @@ function buildSessionEnd(ctx: HookContext): HookCallback {
     // Failsafe wakes ("hey haven't heard from you") are low-value handoffs
     // that would erase rich interactive conversation context.
     try {
+// Guard: autonomous sessions should NOT overwrite interactive handoffs
       if (ctx.isAutonomous) {
         const existingRaw = getConfig('session.handoff_note');
         if (existingRaw) {
@@ -1162,19 +1159,20 @@ function buildSessionEnd(ctx: HookContext): HookCallback {
         }
       }
 
+      const { identity } = getResonantConfig();
       const recentMsgs = getMessages({ threadId: ctx.threadId, limit: 10 });
-      // Build a real digest — last 10 messages, each trimmed to 150 chars
-      const config = getResonantConfig();
-      const userName = config.identity.user_name;
-      const digest = recentMsgs.reverse().map(m => ({
-        role: m.role === 'companion' ? 'Companion' : userName,
-        content: m.content.replace(/\n/g, ' ').trim().substring(0, 150),
-      }));
-      // Fallback excerpt for older consumers
-      const lastAssistant = recentMsgs.find(m => m.role === 'companion');
+      const lastAssistant = [...recentMsgs].reverse().find(m => m.role === 'companion');
       const excerpt = lastAssistant
         ? lastAssistant.content.substring(0, 120).replace(/\n/g, ' ').trim()
         : '';
+      // Richer digest of recent exchanges for cross-thread continuity
+      const digest = recentMsgs
+        .map(m => {
+          const role = m.role === 'companion' ? 'Companion' : identity.user_name;
+          const text = m.content.substring(0, 150).replace(/\n/g, ' ').trim();
+          return `${role}: ${text}${m.content.length > 150 ? '...' : ''}`;
+        })
+        .join('\n');
       const handoff = JSON.stringify({
         thread: ctx.threadName,
         threadType: ctx.threadType,

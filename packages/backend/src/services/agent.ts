@@ -403,6 +403,8 @@ export class AgentService {
     const toolInsertions: ToolInsertion[] = [];
     const thinkingBlocks: ThinkingInsertion[] = [];
     let currentThinkingAccum = '';
+    let agentTimedOut = false;
+    let agentTimeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
     // Build hook context
     const platform = platformOpts?.platform || 'web';
@@ -481,6 +483,14 @@ export class AgentService {
       activeAbortController = new AbortController();
       options.abortController = activeAbortController;
       resetSafetyTimer();
+
+      // Safety timeout — abort if agent hangs for more than 5 minutes
+      const AGENT_TIMEOUT_MS = 5 * 60 * 1000;
+      agentTimeoutHandle = setTimeout(() => {
+        console.warn('[Agent] Timeout: aborting hung session after 5 minutes');
+        agentTimedOut = true;
+        activeAbortController?.abort();
+      }, AGENT_TIMEOUT_MS);
 
       // File checkpointing for rewind support
       options.enableFileCheckpointing = true;
@@ -649,8 +659,13 @@ export class AgentService {
       }
       } catch (abortErr) {
         if (abortErr instanceof AbortError || (abortErr instanceof Error && abortErr.name === 'AbortError')) {
-          console.log('[Agent] Generation stopped by user');
-          registry.broadcast({ type: 'generation_stopped' });
+          if (agentTimedOut) {
+            console.warn('[Agent] Session terminated by safety timeout');
+            registry.broadcast({ type: 'error', code: 'agent_timeout', message: 'Agent session timed out and was reset. Please try again.' });
+          } else {
+            console.log('[Agent] Generation stopped by user');
+            registry.broadcast({ type: 'generation_stopped' });
+          }
         } else {
           throw abortErr; // Re-throw non-abort errors to outer catch
         }
@@ -660,6 +675,7 @@ export class AgentService {
       console.error('Agent query error:', errMsg, error);
       fullResponse = fullResponse || `[Agent error: ${errMsg}]`;
     } finally {
+      if (agentTimeoutHandle) clearTimeout(agentTimeoutHandle);
       // Clean up active query tracking
       clearSafetyTimer();
       activeAbortController = null;

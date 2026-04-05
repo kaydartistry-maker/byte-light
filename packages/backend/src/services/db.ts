@@ -186,16 +186,20 @@ export function getTodayThread(): Thread | null {
   const now = new Date();
   const localDate = now.toLocaleDateString('en-CA', { timeZone: timezone }); // YYYY-MM-DD
 
-  // Determine timezone's signed UTC offset (e.g. EDT = -4, JST = +9)
+  // Compute UTC offset in minutes for the configured timezone
+  // Using total-minutes approach to correctly handle UTC- zones when UTC crosses midnight
   const localHour = parseInt(now.toLocaleString('en-GB', { timeZone: timezone, hour: '2-digit', hour12: false }));
-  const utcHour = now.getUTCHours();
-  let offsetHours = localHour - utcHour;
-  if (offsetHours > 14) offsetHours -= 24;
-  if (offsetHours < -12) offsetHours += 24;
+  const localMinute = parseInt(now.toLocaleString('en-GB', { timeZone: timezone, minute: '2-digit' }));
+  const localTotalMinutes = localHour * 60 + localMinute;
+  const utcTotalMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  let offsetMinutes = localTotalMinutes - utcTotalMinutes;
+  // Clamp to ±720 minutes to handle UTC crossing midnight
+  if (offsetMinutes > 12 * 60) offsetMinutes -= 24 * 60;
+  if (offsetMinutes < -12 * 60) offsetMinutes += 24 * 60;
 
   // Query with offset applied to created_at so SQLite compares in local time
   // ORDER BY + LIMIT 1 ensures deterministic result if multiple daily threads exist
-  const modifier = `${offsetHours >= 0 ? '+' : ''}${offsetHours} hours`;
+  const modifier = `${offsetMinutes >= 0 ? '+' : ''}${offsetMinutes} minutes`;
   const stmt = getDb().prepare(`
     SELECT * FROM threads
     WHERE type = 'daily'

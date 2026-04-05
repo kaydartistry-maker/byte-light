@@ -578,6 +578,15 @@
     min-width: 0;
   }
 
+  /* Inline embedded gifs/images from URLs */
+  .message-content :global(img[alt="gif"]) {
+    max-width: min(320px, 100%);
+    max-height: 240px;
+    border-radius: var(--radius-sm);
+    margin: 0.25rem 0;
+    display: block;
+  }
+
   .deleted-text {
     font-style: italic;
     color: var(--text-muted);
@@ -1194,11 +1203,12 @@
     }
 
     .message {
-      overflow: hidden;
+      overflow: visible;
     }
 
     .message-content {
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: visible;
     }
 
     .tool-output {
@@ -1217,6 +1227,16 @@
     .interleaved-content {
       max-width: calc(100vw - 4rem);
       overflow: hidden;
+    }
+
+    .reactions-row {
+      flex-wrap: wrap;
+    }
+
+    .reaction-quick-pick {
+      left: 0;
+      transform: none;
+      max-width: calc(100vw - 4rem);
     }
 
     .lightbox {

@@ -59,7 +59,7 @@ const IS_DEV = process.env.NODE_ENV !== 'production';
 const corsOrigins: string[] = [...config.cors.origins, `http://localhost:${PORT}`, `http://127.0.0.1:${PORT}`];
 if (IS_DEV) corsOrigins.push('http://localhost:5173');
 
-const connectSrc: string[] = ["'self'"];
+const connectSrc: string[] = ["'self'", "https://api.giphy.com"];
 // Derive WebSocket connect sources from CORS origins
 for (const origin of config.cors.origins) {
   const wsOrigin = origin.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
@@ -228,6 +228,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
     process.exit(1);
   }, 8000).unref();
 }
+
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));

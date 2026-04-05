@@ -2,6 +2,8 @@
   import type { Message } from '@resonant/shared';
   import VoiceRecorder from './VoiceRecorder.svelte';
   import VoiceModeToggle from './VoiceModeToggle.svelte';
+  import GifPicker from './GifPicker.svelte';
+  import EmojiPicker from './EmojiPicker.svelte';
 
   interface FileUploadResult {
     fileId: string;
@@ -140,6 +142,27 @@
     textarea?.focus();
   }
 
+  // Handle gif selection — insert the URL as the message and send
+  function handleGifSelect(url: string) {
+    onbatchsend?.(url, [], undefined);
+  }
+
+  // Handle emoji selection — insert at cursor position
+  function handleEmojiSelect(emoji: string) {
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      content = content.slice(0, start) + emoji + content.slice(end);
+      // Set cursor after inserted emoji
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+        textarea.focus();
+      }, 0);
+    } else {
+      content += emoji;
+    }
+  }
+
   // Cancel reply
   function handleCancelReply() {
     oncancelreply?.();
@@ -222,6 +245,9 @@
         </svg>
       {/if}
     </button>
+
+    <GifPicker onselect={handleGifSelect} />
+    <EmojiPicker onselect={handleEmojiSelect} />
 
     <VoiceRecorder ontranscript={handleTranscript} />
 
@@ -488,31 +514,33 @@
   }
 
   .send-button.stop-active {
-    background: var(--status-error, #ef4444);
-    color: white;
+    background: var(--gold);
+    color: var(--bg-primary);
   }
 
   .send-button.stop-active:hover {
-    background: #dc2626;
-    box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+    background: var(--gold-bright);
+    box-shadow: 0 0 12px var(--gold-glow);
   }
 
   @media (max-width: 768px) {
     .message-input-container {
-      padding: 0 0.5rem 1rem;
+      padding: 0 0.5rem 0.75rem;
     }
 
     .input-bar {
       padding: 0.375rem 0.5rem;
-      gap: 0.375rem;
+      gap: 0.25rem;
+      flex-wrap: nowrap;
     }
 
     .attach-button {
-      padding: 0.5rem;
+      padding: 0.375rem;
     }
 
     textarea {
-      padding: 0.375rem 0.5rem;
+      padding: 0.375rem 0.25rem;
+      font-size: 1rem;
     }
   }
 </style>

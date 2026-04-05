@@ -36,9 +36,9 @@
   --user-border: transparent;
   --user-accent: var(--text-secondary);
 
-  /* Status */
-  --status-active: #22c55e;
-  --status-waking: #eab308;
+  /* Status — follow accent color everywhere */
+  --status-active: var(--gold);
+  --status-waking: var(--gold-dim);
   --status-dormant: #71717a;
   --status-offline: #3f3f46;
 
@@ -69,34 +69,233 @@
 
 /* ─── Light mode ─── */
 [data-theme="light"] {
-  --bg-primary: #fafafa;
-  --bg-secondary: #f4f4f5;
-  --bg-tertiary: #e4e4e7;
-  --bg-surface: #ffffff;
-  --bg-input: #f4f4f5;
-  --text-primary: #18181b;
-  --text-secondary: #52525b;
-  --text-muted: #71717a;
-  --text-accent: #18181b;
+  --bg-primary: #f2f1ee;
+  --bg-secondary: #e8e6e1;
+  --bg-tertiary: #dddbd5;
+  --bg-surface: #faf9f7;
+  --bg-input: #eceae5;
+  --text-primary: #1c1a17;
+  --text-secondary: #504e48;
+  --text-muted: #7a7870;
+  --text-accent: #1c1a17;
   --gold: #3d8b86;
   --gold-bright: #327570;
   --gold-dim: #5eaba5;
-  --gold-glow: rgba(61, 139, 134, 0.08);
-  --gold-ember: rgba(61, 139, 134, 0.04);
+  --gold-glow: rgba(61, 139, 134, 0.1);
+  --gold-ember: rgba(61, 139, 134, 0.05);
+  --accent: var(--gold);
+  --accent-hover: var(--gold-bright);
+  --accent-muted: var(--gold-dim);
   --simon-bg: transparent;
-  --mary-bg: #f4f4f5;
+  --simon-border: transparent;
+  --simon-accent: var(--text-secondary);
+  --mary-bg: var(--bg-surface);
+  --mary-border: transparent;
+  --mary-accent: var(--text-secondary);
   --companion-bg: transparent;
-  --user-bg: #f4f4f5;
-  --status-active: #16a34a;
-  --status-waking: #ca8a04;
+  --companion-border: transparent;
+  --companion-accent: var(--text-secondary);
+  --user-bg: var(--bg-surface);
+  --user-border: transparent;
+  --user-accent: var(--text-secondary);
   --status-dormant: #71717a;
   --status-offline: #d4d4d8;
-  --border: rgba(0, 0, 0, 0.06);
-  --border-hover: rgba(0, 0, 0, 0.1);
-  --shadow: rgba(0, 0, 0, 0.06);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.14);
+  --shadow: rgba(0, 0, 0, 0.07);
+  --shadow-gold: rgba(61, 139, 134, 0.04);
   --bg-hover: rgba(0, 0, 0, 0.04);
-  --bg-active: rgba(0, 0, 0, 0.06);
+  --bg-active: rgba(0, 0, 0, 0.07);
 }
+
+/* ─── Ember — warm charcoal + amber gold ─── */
+[data-theme="ember"] {
+  --bg-primary: #0f0d0b;
+  --bg-secondary: #161310;
+  --bg-tertiary: #1e1915;
+  --bg-surface: #25201a;
+  --bg-input: #1e1915;
+  --text-primary: #ece4d8;
+  --text-secondary: #b09a80;
+  --text-muted: #7a6a55;
+  --text-accent: #ece4d8;
+  --gold: #c4a055;
+  --gold-bright: #d4b870;
+  --gold-dim: #a08040;
+  --gold-glow: rgba(196, 160, 85, 0.12);
+  --gold-ember: rgba(196, 160, 85, 0.06);
+  --accent: var(--gold);
+  --accent-hover: var(--gold-bright);
+  --accent-muted: var(--gold-dim);
+  --simon-bg: transparent;
+  --simon-border: transparent;
+  --simon-accent: var(--text-secondary);
+  --mary-bg: var(--bg-surface);
+  --mary-border: transparent;
+  --mary-accent: var(--text-secondary);
+  --companion-bg: transparent;
+  --companion-border: transparent;
+  --companion-accent: var(--text-secondary);
+  --user-bg: var(--bg-surface);
+  --user-border: transparent;
+  --user-accent: var(--text-secondary);
+  --status-active: #22c55e;
+  --status-waking: #eab308;
+  --status-dormant: #71717a;
+  --status-offline: #3f3f46;
+  --border: rgba(255, 210, 140, 0.07);
+  --border-hover: rgba(255, 210, 140, 0.12);
+  --shadow: rgba(0, 0, 0, 0.4);
+  --shadow-gold: rgba(196, 160, 85, 0.06);
+  --bg-hover: rgba(255, 210, 140, 0.05);
+  --bg-active: rgba(255, 210, 140, 0.08);
+}
+
+/* ─── Midnight — subtle accent tint in backgrounds, monochrome when no accent ─── */
+[data-theme="rose"] {
+  --gold: #909090;
+  --gold-bright: oklch(from var(--gold) calc(l + 0.12) c h);
+  --gold-dim:    oklch(from var(--gold) calc(l - 0.12) c h);
+  --gold-glow:   color-mix(in oklch, var(--gold) 15%, transparent);
+  --gold-ember:  color-mix(in oklch, var(--gold) 7%, transparent);
+  --accent: var(--gold);
+  --accent-hover: var(--gold-bright);
+  --accent-muted: var(--gold-dim);
+
+  --bg-primary:   oklch(from var(--gold) 0.08 calc(c * 0.15) h);
+  --bg-secondary: oklch(from var(--gold) 0.11 calc(c * 0.14) h);
+  --bg-tertiary:  oklch(from var(--gold) 0.14 calc(c * 0.13) h);
+  --bg-surface:   oklch(from var(--gold) 0.18 calc(c * 0.11) h);
+  --bg-input:     oklch(from var(--gold) 0.14 calc(c * 0.13) h);
+
+  --text-primary:   oklch(from var(--gold) 0.92 calc(c * 0.05) h);
+  --text-secondary: oklch(from var(--gold) 0.66 calc(c * 0.08) h);
+  --text-muted:     oklch(from var(--gold) 0.48 calc(c * 0.08) h);
+  --text-accent:    oklch(from var(--gold) 0.92 calc(c * 0.05) h);
+
+  --border:       color-mix(in oklch, var(--gold) 10%, transparent);
+  --border-hover: color-mix(in oklch, var(--gold) 18%, transparent);
+  --bg-hover:     color-mix(in oklch, var(--gold) 6%, transparent);
+  --bg-active:    color-mix(in oklch, var(--gold) 10%, transparent);
+  --shadow:       rgba(0, 0, 0, 0.5);
+  --shadow-gold:  color-mix(in oklch, var(--gold) 8%, transparent);
+
+  --simon-bg: transparent; --simon-border: transparent; --simon-accent: var(--text-secondary);
+  --mary-bg: var(--bg-surface); --mary-border: transparent; --mary-accent: var(--text-secondary);
+  --companion-bg: transparent; --companion-border: transparent; --companion-accent: var(--text-secondary);
+  --user-bg: var(--bg-surface); --user-border: transparent; --user-accent: var(--text-secondary);
+
+  --status-active: var(--gold);
+  --status-waking: var(--gold-dim);
+  --status-dormant: #71717a;
+  --status-offline: #3f3f46;
+}
+
+/* ─── Daylight — subtle accent tint in backgrounds, monochrome when no accent ─── */
+[data-theme="petal"] {
+  --gold: #505050;
+  --gold-bright: oklch(from var(--gold) calc(l - 0.12) c h);
+  --gold-dim:    oklch(from var(--gold) calc(l + 0.10) c h);
+  --gold-glow:   color-mix(in oklch, var(--gold) 12%, transparent);
+  --gold-ember:  color-mix(in oklch, var(--gold) 6%, transparent);
+  --accent: var(--gold);
+  --accent-hover: var(--gold-bright);
+  --accent-muted: var(--gold-dim);
+
+  --bg-primary:   oklch(from var(--gold) 0.94 calc(c * 0.12) h);
+  --bg-secondary: oklch(from var(--gold) 0.88 calc(c * 0.11) h);
+  --bg-tertiary:  oklch(from var(--gold) 0.83 calc(c * 0.10) h);
+  --bg-surface:   oklch(from var(--gold) 0.97 calc(c * 0.06) h);
+  --bg-input:     oklch(from var(--gold) 0.87 calc(c * 0.10) h);
+
+  --text-primary:   oklch(from var(--gold) 0.12 calc(c * 0.05) h);
+  --text-secondary: oklch(from var(--gold) 0.32 calc(c * 0.08) h);
+  --text-muted:     oklch(from var(--gold) 0.52 calc(c * 0.07) h);
+  --text-accent:    oklch(from var(--gold) 0.12 calc(c * 0.05) h);
+
+  --border:       color-mix(in oklch, var(--gold) 12%, transparent);
+  --border-hover: color-mix(in oklch, var(--gold) 22%, transparent);
+  --bg-hover:     color-mix(in oklch, var(--gold) 6%, transparent);
+  --bg-active:    color-mix(in oklch, var(--gold) 10%, transparent);
+  --shadow:       rgba(0, 0, 0, 0.08);
+  --shadow-gold:  color-mix(in oklch, var(--gold) 5%, transparent);
+
+  --simon-bg: transparent; --simon-border: transparent; --simon-accent: var(--text-secondary);
+  --mary-bg: var(--bg-surface); --mary-border: transparent; --mary-accent: var(--text-secondary);
+  --companion-bg: transparent; --companion-border: transparent; --companion-accent: var(--text-secondary);
+  --user-bg: var(--bg-surface); --user-border: transparent; --user-accent: var(--text-secondary);
+
+  --status-active: var(--gold);
+  --status-waking: var(--gold-dim);
+  --status-dormant: #71717a;
+  --status-offline: #d4d4d8;
+}
+
+/* ─── Cosmos — deep blue + sky ─── */
+[data-theme="cosmos"] {
+  --bg-primary: #080d14;
+  --bg-secondary: #0d1520;
+  --bg-tertiary: #131d2e;
+  --bg-surface: #192638;
+  --bg-input: #131d2e;
+  --text-primary: #dde8f5;
+  --text-secondary: #8aa8c8;
+  --text-muted: #527090;
+  --text-accent: #dde8f5;
+  --gold: #68aace;
+  --gold-bright: #85c0e0;
+  --gold-dim: #4e889e;
+  --gold-glow: rgba(104, 170, 206, 0.12);
+  --gold-ember: rgba(104, 170, 206, 0.06);
+  --accent: var(--gold);
+  --accent-hover: var(--gold-bright);
+  --accent-muted: var(--gold-dim);
+  --simon-bg: transparent;
+  --simon-border: transparent;
+  --simon-accent: var(--text-secondary);
+  --mary-bg: var(--bg-surface);
+  --mary-border: transparent;
+  --mary-accent: var(--text-secondary);
+  --companion-bg: transparent;
+  --companion-border: transparent;
+  --companion-accent: var(--text-secondary);
+  --user-bg: var(--bg-surface);
+  --user-border: transparent;
+  --user-accent: var(--text-secondary);
+  --status-active: #22c55e;
+  --status-waking: #eab308;
+  --status-dormant: #71717a;
+  --status-offline: #3f3f46;
+  --border: rgba(140, 190, 255, 0.07);
+  --border-hover: rgba(140, 190, 255, 0.12);
+  --shadow: rgba(0, 0, 0, 0.4);
+  --shadow-gold: rgba(104, 170, 206, 0.06);
+  --bg-hover: rgba(140, 190, 255, 0.04);
+  --bg-active: rgba(140, 190, 255, 0.07);
+}
+
+[data-theme="cosmos"] ::-webkit-scrollbar-thumb { background: rgba(104,170,206,0.15); }
+[data-theme="cosmos"] ::-webkit-scrollbar-thumb:hover { background: rgba(104,170,206,0.25); }
+
+/* ─── Accents — set --gold only; theme derives everything else ─── */
+[data-accent="crimson"]  { --gold: #c43040; }
+[data-accent="burgundy"] { --gold: #d01850; }
+[data-accent="rose"]     { --gold: #c04068; }
+[data-accent="orange"]   { --gold: #d87818; }
+[data-accent="amber"]    { --gold: #c88818; }
+[data-accent="forest"]   { --gold: #1e7840; }
+[data-accent="emerald"]  { --gold: #1a9868; }
+[data-accent="mint"]     { --gold: #1aaa90; }
+[data-accent="teal"]     { --gold: #18b8a8; }
+[data-accent="ocean"]    { --gold: #1880c0; }
+[data-accent="sapphire"] { --gold: #1848c8; }
+[data-accent="lavender"] { --gold: #8068d0; }
+[data-accent="amethyst"] { --gold: #6040b8; }
+[data-accent="plum"]     { --gold: #7020a0; }
+[data-accent="magenta"]  { --gold: #c81878; }
+[data-accent="blush"]    { --gold: #b88890; }
+[data-accent="slate"]    { --gold: #707070; }
+[data-accent="silver"]   { --gold: #a8a8a8; }
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -109,6 +308,7 @@ html {
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
   overflow-y: hidden;
+  height: 100%;
 }
 
 body {
@@ -118,12 +318,16 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   letter-spacing: 0;
-  min-height: 100dvh;
+  height: 100%;
   overflow: hidden;
   touch-action: manipulation;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#svelte {
+  height: 100%;
 }
 
 a {
@@ -177,6 +381,10 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
 [data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); }
 [data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
+[data-theme="rose"]  ::-webkit-scrollbar-thumb { background: color-mix(in oklch, var(--gold) 20%, transparent); }
+[data-theme="rose"]  ::-webkit-scrollbar-thumb:hover { background: color-mix(in oklch, var(--gold) 35%, transparent); }
+[data-theme="petal"] ::-webkit-scrollbar-thumb { background: color-mix(in oklch, var(--gold) 15%, transparent); }
+[data-theme="petal"] ::-webkit-scrollbar-thumb:hover { background: color-mix(in oklch, var(--gold) 28%, transparent); }
 
 @media (display-mode: standalone) {
   button, nav, header, aside { -webkit-user-select: none; user-select: none; }
@@ -196,32 +404,32 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 
 @media (prefers-color-scheme: light) {
   html:not([data-theme="dark"]) {
-    --bg-primary: #fafafa;
-    --bg-secondary: #f4f4f5;
-    --bg-tertiary: #e4e4e7;
-    --bg-surface: #ffffff;
-    --bg-input: #f4f4f5;
-    --text-primary: #18181b;
-    --text-secondary: #52525b;
-    --text-muted: #71717a;
-    --text-accent: #18181b;
+    --bg-primary: #f2f1ee;
+    --bg-secondary: #e8e6e1;
+    --bg-tertiary: #dddbd5;
+    --bg-surface: #faf9f7;
+    --bg-input: #eceae5;
+    --text-primary: #1c1a17;
+    --text-secondary: #504e48;
+    --text-muted: #7a7870;
+    --text-accent: #1c1a17;
     --gold: #3d8b86;
     --gold-bright: #327570;
     --gold-dim: #5eaba5;
-    --gold-glow: rgba(61, 139, 134, 0.08);
-    --gold-ember: rgba(61, 139, 134, 0.04);
+    --gold-glow: rgba(61, 139, 134, 0.1);
+    --gold-ember: rgba(61, 139, 134, 0.05);
     --simon-bg: transparent;
-    --mary-bg: #f4f4f5;
+    --mary-bg: var(--bg-surface);
     --companion-bg: transparent;
-    --user-bg: #f4f4f5;
+    --user-bg: var(--bg-surface);
     --status-active: #16a34a;
     --status-waking: #ca8a04;
     --status-dormant: #71717a;
     --status-offline: #d4d4d8;
-    --border: rgba(0, 0, 0, 0.06);
-    --border-hover: rgba(0, 0, 0, 0.1);
-    --shadow: rgba(0, 0, 0, 0.06);
+    --border: rgba(0, 0, 0, 0.08);
+    --border-hover: rgba(0, 0, 0, 0.14);
+    --shadow: rgba(0, 0, 0, 0.07);
     --bg-hover: rgba(0, 0, 0, 0.04);
-    --bg-active: rgba(0, 0, 0, 0.06);
+    --bg-active: rgba(0, 0, 0, 0.07);
   }
 }

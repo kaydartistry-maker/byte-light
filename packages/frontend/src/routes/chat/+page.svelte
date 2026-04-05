@@ -90,7 +90,11 @@
 
   // Theme toggle
   function toggleTheme() {
-    setMode(getMode() === 'dark' ? 'light' : 'dark');
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'petal' ? 'rose' : 'petal';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('resonant-theme', next);
   }
 
   // Local state
@@ -103,6 +107,7 @@
   let readObserver: IntersectionObserver | null = null;
   let loadingOlder = $state(false);
   let hasMoreMessages = $state(true);
+  let companionName = $state('Fire & Smoke'); // default until prefs load
 
   // Total unread count
   const totalUnread = $derived(
@@ -275,6 +280,10 @@
   onMount(async () => {
     initTheme();
     await Promise.all([loadThreads(), loadSettings()]);
+    fetch('/api/preferences', { credentials: 'include' })
+      .then(r => r.json())
+      .then(p => { if (p?.identity?.companion_name) companionName = p.identity.companion_name; })
+      .catch(() => {});
     connect();
     window.addEventListener('keydown', handleGlobalKeydown);
 
@@ -343,7 +352,7 @@
       </button>
 
       <div class="header-info">
-        <h1 class="header-title">Bytelight</h1>
+        <h1 class="header-title">{companionName}</h1>
         <PresenceIndicator status={presence} />
         <ModelSelector />
       </div>
@@ -490,12 +499,12 @@
                 />
               {:else}
                 <!-- Live activity panel while companion is working -->
-                <div class="activity-panel" aria-label="Bytelight is working">
+                <div class="activity-panel" aria-label="Working">
                   <div class="activity-header">
                     <span class="typing-dot"></span>
                     <span class="typing-dot"></span>
                     <span class="typing-dot"></span>
-                    <span class="activity-label">Bytelight is thinking...</span>
+                    <span class="activity-label">Thinking...</span>
                   </div>
                   {#if liveTools.length > 0}
                     <div class="activity-tools">
@@ -551,7 +560,7 @@
 <style>
   .chat-page {
     display: flex;
-    height: 100dvh;
+    height: 100%;
     overflow: hidden;
     max-width: 100vw;
   }
@@ -706,12 +715,12 @@
   }
 
   .stop-btn {
-    color: var(--status-error, #ef4444) !important;
+    color: var(--gold) !important;
     animation: stopPulse 1.5s ease-in-out infinite;
   }
 
   .stop-btn:hover {
-    color: #ff6b6b !important;
+    color: var(--gold-bright) !important;
   }
 
   @keyframes stopPulse {
@@ -724,8 +733,8 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: rgba(245, 197, 66, 0.08);
-    border-bottom: 1px solid rgba(245, 197, 66, 0.2);
+    background: var(--gold-ember);
+    border-bottom: 1px solid var(--border);
     color: var(--gold-dim);
     font-size: 0.8125rem;
     flex-shrink: 0;
@@ -742,8 +751,8 @@
   }
 
   @keyframes compactingPulse {
-    0%, 100% { background: rgba(245, 197, 66, 0.08); }
-    50% { background: rgba(245, 197, 66, 0.16); }
+    0%, 100% { background: var(--gold-ember); }
+    50% { background: var(--gold-glow); }
   }
 
   .rate-limit-banner {
@@ -751,9 +760,9 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: rgba(245, 158, 11, 0.08);
-    border-bottom: 1px solid rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
+    background: var(--gold-ember);
+    border-bottom: 1px solid var(--border);
+    color: var(--gold);
     font-size: 0.8125rem;
     flex-shrink: 0;
     animation: bannerFadeIn 0.3s ease-out;

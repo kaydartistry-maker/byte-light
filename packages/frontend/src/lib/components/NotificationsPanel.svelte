@@ -276,7 +276,7 @@
     flex-shrink: 0;
   }
 
-  .status-dot.granted { background: #22c55e; }
+  .status-dot.granted { background: var(--status-active); }
   .status-dot.denied { background: #ef4444; }
   .status-dot.default { background: var(--text-muted); }
 
@@ -284,7 +284,7 @@
     font-size: 0.875rem;
   }
 
-  .status-text.granted { color: #22c55e; }
+  .status-text.granted { color: var(--status-active); }
   .status-text.denied { color: #ef4444; }
 
   .help-text {
@@ -370,7 +370,7 @@
 
   .status-msg {
     font-size: 0.8125rem;
-    color: #22c55e;
+    color: var(--status-active);
     margin-top: 0.75rem;
   }
 

@@ -199,6 +199,13 @@ class ConnectionRegistry {
 
 export const registry = new ConnectionRegistry();
 
+function getLastMessagePreview(threadId: string): string | null {
+  const msgs = getMessages({ threadId, limit: 1 });
+  if (!msgs.length) return null;
+  const content = msgs[msgs.length - 1].content ?? '';
+  return content.substring(0, 100).replace(/\n/g, ' ').trim() || null;
+}
+
 function threadsToSummaries(threads: Thread[]): ThreadSummary[] {
   return threads.map(t => ({
     id: t.id,
@@ -206,7 +213,7 @@ function threadsToSummaries(threads: Thread[]): ThreadSummary[] {
     type: t.type,
     unread_count: t.unread_count,
     last_activity_at: t.last_activity_at,
-    last_message_preview: null, // TODO: fetch last message content
+    last_message_preview: getLastMessagePreview(t.id),
     pinned_at: t.pinned_at ?? null,
   }));
 }
@@ -268,6 +275,7 @@ export function createWebSocketServer(server: HTTPServer, agentService?: AgentSe
     // Validate session if password is set
     if (appPassword) {
       const cookieHeader = request.headers.cookie;
+      console.log("WS Cookie header:", cookieHeader);
       if (!cookieHeader) {
         console.log(`[WS Upgrade] REJECTED: no cookie header`);
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
@@ -1079,7 +1087,7 @@ function handlePinThread(
         type: thread.type,
         unread_count: thread.unread_count,
         last_activity_at: thread.last_activity_at,
-        last_message_preview: null,
+        last_message_preview: getLastMessagePreview(thread.id),
         pinned_at: thread.pinned_at,
       },
     });
@@ -1100,7 +1108,7 @@ function handleUnpinThread(
         type: thread.type,
         unread_count: thread.unread_count,
         last_activity_at: thread.last_activity_at,
-        last_message_preview: null,
+        last_message_preview: getLastMessagePreview(thread.id),
         pinned_at: null,
       },
     });

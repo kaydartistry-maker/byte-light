@@ -199,11 +199,11 @@ export class DiscordService {
 
       console.log(`[Discord] Processing from ${firstMessage.author.username} in ${channelId}`);
 
-      // Pre-fetch channel history (25 messages)
+      // Pre-fetch channel history (10 messages)
       try {
         const channel = lastMessage.channel;
         if ('messages' in channel) {
-          const history = await (channel as TextChannel).messages.fetch({ limit: 25 });
+          const history = await (channel as TextChannel).messages.fetch({ limit: 10 });
           batch.channelHistory = formatChannelHistory([...history.values()].reverse());
         }
       } catch (err) {
@@ -290,11 +290,12 @@ export class DiscordService {
         'Max message length: 2000 chars (responses auto-split at 1900).',
         'Replying to the last message in this batch.',
         'Keep responses appropriate to the platform — not as terse as Telegram, but don\'t write essays.',
+        'IMPORTANT: Do NOT use --- (horizontal rules) between Bran and Wren sections — they render as literal dashes in Discord. Use a blank line instead.',
       ].join('\n');
 
       const rulesContext = buildRulesContext(userId, channelId, batch.guildId);
       const historyContext = batch.channelHistory
-        ? `\n\n=== RECENT CHANNEL HISTORY (last 25 messages) ===\n${batch.channelHistory}`
+        ? `\n\n=== RECENT CHANNEL HISTORY (last 10 messages) ===\n${batch.channelHistory}`
         : '';
       const platformContext = `${platformGuidance}\n\n${rulesContext}${historyContext}`;
 
